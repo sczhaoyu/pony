@@ -24,13 +24,10 @@ func main() {
 var data []byte = []byte(`{"head":{"faceCode":100,"userId":0,"token":""}}`)
 
 func Client(conn net.Conn) {
-	sms := make([]byte, 128)
 	for {
 
 		tmp := util.IntToByteSlice(len(data))
 		tmp = append(tmp, data...)
-		fmt.Print("请输入要发送的消息:")
-		fmt.Scan(&sms)
 		conn.Write(tmp)
 		buf := make([]byte, 128)
 		c, err := conn.Read(buf)

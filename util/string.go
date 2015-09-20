@@ -3,6 +3,8 @@ package util
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"net"
 )
 
@@ -15,22 +17,33 @@ func IntToByteSlice(i int) []byte {
 func ByteSliceToInt(data []byte) int {
 	b_buf := bytes.NewBuffer(data)
 	var x int32
-	binary.Read(b_buf, binary.BigEndian, &x)
+	err := binary.Read(b_buf, binary.BigEndian, &x)
+	if err != nil {
+		return 0
+	}
 	return int(x)
 }
-func ReadData(conn net.Conn) ([]byte, error) {
+func ReadData(conn net.Conn, length int) ([]byte, error) {
 	var l int = 4
 	data := make([]byte, l)
+	var i int = 0
+	var err error
 	for l > 0 {
-		i, err := conn.Read(data)
+		i, err = conn.Read(data)
 		if err != nil {
 			return nil, err
 		}
 		l = l - i
 	}
 	l = ByteSliceToInt(data)
+	if l == 0 {
+		return nil, errors.New("data nil")
+	}
+	if l > length {
+		return nil, errors.New("data must  < " + fmt.Sprintf("%d", length))
+	}
+	data = make([]byte, l)
 	for l > 0 {
-		data = make([]byte, l)
 		i, err := conn.Read(data)
 		if err != nil {
 			return nil, err

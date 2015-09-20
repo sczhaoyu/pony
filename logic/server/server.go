@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
 	"sync"
@@ -22,6 +23,7 @@ type Server struct {
 	RspMsg         map[string]*RspMsg //已发送的消息
 	RspSendTimeOut int64              //等待发送回应超时(秒)
 	APMutex        sync.Mutex         //rspMsg and pushSendQueue Mutex
+	MaxDataLen     int                //最大接受数据长度
 }
 
 //创建服务
@@ -33,6 +35,7 @@ func NewServer(port int) *Server {
 	s.MaxResponds = 50000
 	s.HeartbeatTime = 20
 	s.RspSendTimeOut = 180
+	s.MaxDataLen = 2048
 	s.RespondsChan = make(chan *Response, s.MaxResponds)
 	s.MaxClientChan = make(chan int, s.MaxClient)
 	s.RspMsg = make(map[string]*RspMsg)
@@ -57,8 +60,6 @@ func (s *Server) Start() {
 		return
 	}
 	log.Println("logic server start success:", s.Port)
-	// //读取数据
-	// go s.ReadData(conn)
 	//启动消息发送线程
 	go s.sendMsg()
 	//消息检测线程
@@ -71,21 +72,23 @@ func (s *Server) Start() {
 			continue
 		}
 		s.MaxClientChan <- 1
+		// //读取数据
+		go s.ReadData(conn)
 	}
 
 }
 
 //读取客户端服务器过来的数据
 func (s *Server) ReadData(conn *net.TCPConn) {
-	data := make([]byte, 4)
 	for {
-		_, err := conn.Read(data)
+		data, err := util.ReadData(conn, s.MaxDataLen)
 		if err != nil {
 			s.CloseConn(conn)
-			break
+			return
 		}
 		//进入路由器
-		go handler(data)
+		log.Println(string(data))
+		//go handler(data)
 	}
 
 }

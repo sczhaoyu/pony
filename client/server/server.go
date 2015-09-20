@@ -17,8 +17,8 @@ type Server struct {
 	MaxClient      int                     //服务器最大链接
 	MaxClientChan  chan int                //链接处理通道
 	MaxSendLogic   int                     //推送客户端消息最大处理数量
-	LogicSendChan  chan interface{}        //逻辑服务发送数据通道
-
+	LSM            *LogicServerManager     //逻辑服务管理
+	MaxDataLen     int                     //最大接受数据长度
 }
 
 //创建服务
@@ -28,9 +28,9 @@ func NewServer(port int) *Server {
 	s.Ip = ""
 	s.MaxClient = 200
 	s.MaxSendLogic = 5000
-	s.SessionTimeOut = 20
-	s.LogicSendChan = make(chan interface{}, s.MaxSendLogic)
+	s.SessionTimeOut = 200
 	s.MaxClientChan = make(chan int, s.MaxClient)
+	s.MaxDataLen = 2048
 	s.Session = make(map[string]*net.TCPConn)
 	return &s
 }
@@ -44,17 +44,18 @@ func (s *Server) Start() {
 	}
 	log.Println("client server start success:", s.Port)
 	//启动逻辑服务器链接
-	go NewLogicServerConn("127.0.0.1:8456").Start()
+	s.LSM = NewLogicServerManager("127.0.0.1:8456")
+	go s.LSM.Start()
 	for {
 		conn, err := listen.AcceptTCP()
-		//加入会话
-		s.AddSession(conn)
 		if err != nil {
 			log.Println("client error:", err.Error())
 			s.CloseConn(conn)
 			continue
 		}
 		s.MaxClientChan <- 1
+		//加入会话
+		s.AddSession(conn)
 		go s.ReadData(conn)
 	}
 
@@ -63,34 +64,19 @@ func (s *Server) Start() {
 //读取客户端的数据
 func (s *Server) ReadData(conn *net.TCPConn) {
 	for {
-		var l int = 4
-		data := make([]byte, l)
 		timeout := make(chan bool, 1)
 		go func() {
 			time.Sleep(time.Second * time.Duration(s.SessionTimeOut))
 			timeout <- true
 		}()
 		go func() {
-			for l > 0 {
-				i, err := conn.Read(data)
-				if err != nil {
-					s.CloseConn(conn)
-					return
-				}
-				l = l - i
+			data, err := util.ReadData(conn, s.MaxDataLen)
+			if err != nil {
+				s.CloseConn(conn)
+				return
 			}
-			l = util.ByteSliceToInt(data)
-			for l > 0 {
-				data = make([]byte, l)
-				i, err := conn.Read(data)
-				if err != nil {
-					s.CloseConn(conn)
-					return
-				}
-				l = l - i
-				//发送给逻辑服务器
-				s.SendLogic(data)
-			}
+			//发送给逻辑服务器
+			s.SendLogic(data)
 		}()
 		<-timeout //超时关闭链接
 		s.CloseConn(conn)
@@ -111,10 +97,11 @@ func (s *Server) CloseConn(conn *net.TCPConn) {
 }
 
 //发送逻辑服务器处理
-func (s *Server) SendLogic(r interface{}) {
+func (s *Server) SendLogic(data []byte) {
+	tmp := util.IntToByteSlice(len(data))
+	tmp = append(tmp, data...)
 	//写入数据库 备份
-	s.LogicSendChan <- r
-	log.Println(string(r.([]byte)))
+	s.LSM.SendChan <- tmp
 }
 
 //添加session
