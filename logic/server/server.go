@@ -57,6 +57,12 @@ func (s *Server) Start() {
 		return
 	}
 	log.Println("logic server start success:", s.Port)
+	// //读取数据
+	// go s.ReadData(conn)
+	//启动消息发送线程
+	go s.sendMsg()
+	//消息检测线程
+	go s.RspMsgCheck()
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
@@ -65,12 +71,6 @@ func (s *Server) Start() {
 			continue
 		}
 		s.MaxClientChan <- 1
-		//读取数据
-		go s.ReadData(conn)
-		//启动消息发送线程
-		go s.sendMsg()
-		//消息检测线程
-		go s.RspMsgCheck()
 	}
 
 }
@@ -97,7 +97,7 @@ func (s *Server) CloseConn(conn *net.TCPConn) {
 }
 
 //加入消息
-func (s *Server) AppendRspMsg(r *request, data interface{}) {
+func (s *Server) AppendRspMsg(r *Request, data interface{}) {
 
 	var msg RspMsg
 	msg.Req = r
@@ -114,7 +114,7 @@ func (s *Server) GetConn(r *Response) *net.TCPConn {
 }
 
 //将对象写入到发送的队列
-func (s *Server) pushSendQueue(r *request, data interface{}, b bool) {
+func (s *Server) pushSendQueue(r *Request, data interface{}, b bool) {
 	s.APMutex.Lock()
 	rsp := NewClientResponse(r, data)
 	if b {

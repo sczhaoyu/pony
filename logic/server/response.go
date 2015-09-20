@@ -8,7 +8,7 @@ type Response struct {
 	Head *ResponseHead `json:"head"`
 }
 
-func NewClientResponse(r *request, data interface{}) *Response {
+func NewClientResponse(r *Request, data interface{}) *Response {
 	return nil
 }
 func (r *Response) GetJson() []byte {

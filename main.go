@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/sczhaoyu/pony/util"
 	"net"
 )
 
@@ -20,19 +21,22 @@ func main() {
 	Client(conn)
 }
 
+var data []byte = []byte(`{"head":{"faceCode":100,"userId":0,"token":""}}`)
+
 func Client(conn net.Conn) {
 	sms := make([]byte, 128)
 	for {
+
+		tmp := util.IntToByteSlice(len(data))
+		tmp = append(tmp, data...)
 		fmt.Print("请输入要发送的消息:")
-		_, err := fmt.Scan(&sms)
-		if err != nil {
-			fmt.Println("数据输入异常:", err.Error())
-		}
-		conn.Write(sms)
+		fmt.Scan(&sms)
+		conn.Write(tmp)
 		buf := make([]byte, 128)
 		c, err := conn.Read(buf)
 		if err != nil {
 			fmt.Println("读取服务器数据异常:", err.Error())
+			return
 		}
 		fmt.Println(string(buf[0:c]))
 	}

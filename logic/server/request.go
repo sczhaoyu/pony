@@ -1,10 +1,10 @@
 package server
 
-type requestHead struct {
+type RequestHead struct {
 	UserId   int64
 	FaceCode int
 	Uuid     string
 }
-type request struct {
-	Head *requestHead
+type Request struct {
+	Head *RequestHead
 }

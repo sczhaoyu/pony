@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 )
 
-var roter map[int]func(*request) = make(map[int]func(*request))
+var roter map[int]func(*Request) = make(map[int]func(*Request))
 
 func registerRoter() {
 	//用户注册
 	roter[100] = register
 }
 func handler(data []byte) {
-	var r request
+	var r Request
 	err := json.Unmarshal(data, &r)
 	if err != nil {
 		//输出错误到客户端
