@@ -98,10 +98,8 @@ func (s *Server) CloseConn(conn *net.TCPConn) {
 
 //发送逻辑服务器处理
 func (s *Server) SendLogic(data []byte) {
-	tmp := util.IntToByteSlice(len(data))
-	tmp = append(tmp, data...)
 	//写入数据库 备份
-	s.LSM.SendChan <- tmp
+	s.LSM.SendChan <- util.ByteLen(data)
 }
 
 //添加session

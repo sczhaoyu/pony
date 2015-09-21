@@ -6,6 +6,7 @@ import (
 )
 
 func main() {
-	NewServer(8555).Start()
 	runtime.SetCPUProfileRate(runtime.NumCPU())
+	NewServer(8555).Start()
+
 }

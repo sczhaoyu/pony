@@ -4,8 +4,6 @@ import (
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
-	"sync"
-	"time"
 )
 
 var (
@@ -13,43 +11,34 @@ var (
 )
 
 type Server struct {
-	Ip             string             //服务器IP
-	Port           int                //启动端口
-	MaxClient      int                //服务器最大链接
-	MaxClientChan  chan int           //链接处理通道
-	MaxResponds    int                //推送消息最大处理数量
-	RespondsChan   chan *Response     //推送消息数据通道
-	HeartbeatTime  int64              //心跳超时回收时间(秒)
-	RspMsg         map[string]*RspMsg //已发送的消息
-	RspSendTimeOut int64              //等待发送回应超时(秒)
-	APMutex        sync.Mutex         //rspMsg and pushSendQueue Mutex
-	MaxDataLen     int                //最大接受数据长度
+	Ip            string              //服务器IP
+	Port          int                 //启动端口
+	MaxClient     int                 //服务器最大链接
+	MCC           chan int            //链接处理通道
+	MaxPush       int                 //推送消息最大处理数量
+	RspC          chan *Response      //推送消息数据通道
+	HeartbeatTime int64               //心跳超时回收时间(秒)
+	MaxDataLen    int                 //最大接受数据长度
+	Session       map[string]net.Conn //session
 }
 
 //创建服务
 func NewServer(port int) *Server {
-
 	s.Port = port
 	s.Ip = ""
 	s.MaxClient = 200
-	s.MaxResponds = 50000
+	s.MaxPush = 50000
 	s.HeartbeatTime = 20
-	s.RspSendTimeOut = 180
 	s.MaxDataLen = 2048
-	s.RespondsChan = make(chan *Response, s.MaxResponds)
-	s.MaxClientChan = make(chan int, s.MaxClient)
-	s.RspMsg = make(map[string]*RspMsg)
+	s.RspC = make(chan *Response, s.MaxPush)
+	s.MCC = make(chan int, s.MaxClient)
+	s.Session = make(map[string]net.Conn)
 	return &s
 }
 
 //消息接受状态确认检测
 func (s *Server) RspMsgCheck() {
-	for _, v := range s.RspMsg {
-		if v.State == false && time.Now().Unix()-s.RspSendTimeOut > v.SendTime {
-			s.pushSendQueue(v.Req, v.Rsp, true)
-		}
-	}
-	time.Sleep(time.Second * time.Duration(s.RspSendTimeOut))
+
 }
 
 //启动服务
@@ -71,7 +60,8 @@ func (s *Server) Start() {
 			s.CloseConn(conn)
 			continue
 		}
-		s.MaxClientChan <- 1
+		s.MCC <- 1
+		s.AddSession(conn)
 		// //读取数据
 		go s.ReadData(conn)
 	}
@@ -86,57 +76,36 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 			s.CloseConn(conn)
 			return
 		}
-		//进入路由器
-		log.Println(string(data))
-		//go handler(data)
+		//进入处理
+		go handler(NewConn(conn, s), data)
 	}
+}
 
+func (s *Server) AddSession(conn net.Conn) {
+	s.Session[conn.RemoteAddr().String()] = conn
 }
 
 //关闭链接
-func (s *Server) CloseConn(conn *net.TCPConn) {
+func (s *Server) CloseConn(conn net.Conn) {
 	conn.Close()
-	<-s.MaxClientChan
+	<-s.MCC
 }
 
 //加入消息
-func (s *Server) AppendRspMsg(r *Request, data interface{}) {
-
-	var msg RspMsg
-	msg.Req = r
-	msg.Rsp = data
-	msg.SendTime = time.Now().Unix()
-	msg.State = false
-	s.RspMsg[r.Head.Uuid] = &msg
-
+func (s *Server) Put(r *Response) {
+	s.RspC <- r
 }
 
 //获取链接
-func (s *Server) GetConn(r *Response) *net.TCPConn {
-	return nil
-}
-
-//将对象写入到发送的队列
-func (s *Server) pushSendQueue(r *Request, data interface{}, b bool) {
-	s.APMutex.Lock()
-	rsp := NewClientResponse(r, data)
-	if b {
-		//更新数据库消息ID的时间
-		//更新重发队列的时间
-		s.RspMsg[r.Head.Uuid].SendTime = time.Now().Unix()
-	} else {
-		//写入等待重发确认
-		s.AppendRspMsg(r, data)
-		//写入数据库备份
-	}
-	s.RespondsChan <- rsp
-	defer s.APMutex.Unlock()
+func (s *Server) GetConn(r *Response) net.Conn {
+	return s.Session[r.Head.Addr]
 }
 
 //发送消息
 func (s *Server) sendMsg() {
 	for {
-		rsp := <-s.RespondsChan
+		rsp := <-s.RspC
+		log.Println(rsp)
 		s.GetConn(rsp).Write(rsp.GetJson())
 	}
 }

@@ -45,13 +45,13 @@ func (lc *LogicConn) Start() {
 //读取数据
 func (lc *LogicConn) ReadData() {
 	for {
-		_, err := util.ReadData(lc.Conn, lc.MaxDataLen)
+		data, err := util.ReadData(lc.Conn, lc.MaxDataLen)
 		if err != nil {
 			lc.State = false
 			lc.RC <- 0
-
+			break
 		}
-
+		log.Println("收到报文:", string(data))
 	}
 }
 
@@ -78,10 +78,10 @@ func (lc *LogicConn) CheckClient() {
 			lc.Conn, err = lc.newConn(lc.Addr)
 			if err == nil {
 				lc.State = true
-
 				log.Println("logic server reset client success")
+				go lc.ReadData()
 			} else {
-				time.Sleep(time.Second * 20)
+				time.Sleep(time.Second * 5)
 			}
 		}
 		lc.ConnMutex.Unlock()

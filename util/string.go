@@ -2,12 +2,22 @@ package util
 
 import (
 	"bytes"
+	"code.google.com/p/go-uuid/uuid"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 )
 
+//生成一个UUID
+func GetUUID() string {
+	return strings.Replace(uuid.NewUUID().String(), "-", "", -1)
+}
+func ByteLen(data []byte) []byte {
+	tmp := IntToByteSlice(len(data))
+	return append(tmp, data...)
+}
 func IntToByteSlice(i int) []byte {
 	var x int32 = int32(i)
 	b_buf := bytes.NewBuffer([]byte{})

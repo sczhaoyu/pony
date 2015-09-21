@@ -2,27 +2,27 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 )
 
-var roter map[int]func(*Request) = make(map[int]func(*Request))
+var roter map[int]func(*Conn) = make(map[int]func(*Conn))
 
 func registerRoter() {
 	//用户注册
 	roter[100] = register
 }
-func handler(data []byte) {
-	var r Request
-	err := json.Unmarshal(data, &r)
+func handler(c *Conn, data []byte) {
+	err := json.Unmarshal(data, &c.Request)
 	if err != nil {
-		//输出错误到客户端
+		c.Write(err)
 		return
 	}
-	h := roter[r.Head.FaceCode]
+	h := roter[c.Head.FaceCode]
 	if h == nil {
-		//函数不存在 输出错误到客户端
+		c.Write(errors.New("Does not exist faceCode?"))
 		return
 	}
 	//加入拦截器 检查身份
-	h(&r)
+	h(c)
 	//选择执行函数
 }
