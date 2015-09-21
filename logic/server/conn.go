@@ -25,6 +25,7 @@ func (c *Conn) NewResponse(d interface{}) *Response {
 	w.Head.Addr = c.RemoteAddr().String()
 	w.Head.Uuid = util.GetUUID()
 	w.Head.UserId = c.Head.UserId
+	w.Head.UserAddr = c.Head.UserAddr
 	switch err := d.(type) {
 	case int:
 		w.Head.Msg = ErrMsg[d.(int)]

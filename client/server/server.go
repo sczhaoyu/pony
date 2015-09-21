@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
@@ -19,20 +20,23 @@ type Server struct {
 	MaxSendLogic   int                     //推送客户端消息最大处理数量
 	LSM            *LogicServerManager     //逻辑服务管理
 	MaxDataLen     int                     //最大接受数据长度
+	RSC            chan []byte             //回应客户端数据通道
 }
+
+var ClientServer Server
 
 //创建服务
 func NewServer(port int) *Server {
-	var s Server
-	s.Port = port
-	s.Ip = ""
-	s.MaxClient = 200
-	s.MaxSendLogic = 5000
-	s.SessionTimeOut = 200
-	s.MaxClientChan = make(chan int, s.MaxClient)
-	s.MaxDataLen = 2048
-	s.Session = make(map[string]*net.TCPConn)
-	return &s
+	ClientServer.Port = port
+	ClientServer.Ip = ""
+	ClientServer.MaxClient = 200
+	ClientServer.MaxSendLogic = 5000
+	ClientServer.SessionTimeOut = 200
+	ClientServer.MaxClientChan = make(chan int, ClientServer.MaxClient)
+	ClientServer.MaxDataLen = 2048
+	ClientServer.RSC = make(chan []byte, ClientServer.MaxClient)
+	ClientServer.Session = make(map[string]*net.TCPConn)
+	return &ClientServer
 }
 
 //启动服务
@@ -57,6 +61,7 @@ func (s *Server) Start() {
 		//加入会话
 		s.AddSession(conn)
 		go s.ReadData(conn)
+		go s.RSCSend()
 	}
 
 }
@@ -76,7 +81,9 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 				return
 			}
 			//发送给逻辑服务器
-			s.SendLogic(data)
+			data = NewRequest(conn, data).GetJson()
+			s.Put(data)
+
 		}()
 		<-timeout //超时关闭链接
 		s.CloseConn(conn)
@@ -97,9 +104,25 @@ func (s *Server) CloseConn(conn *net.TCPConn) {
 }
 
 //发送逻辑服务器处理
-func (s *Server) SendLogic(data []byte) {
+func (s *Server) Put(data []byte) {
 	//写入数据库 备份
-	s.LSM.SendChan <- util.ByteLen(data)
+	s.LSM.SendChan <- data
+}
+
+//回应客户端数据
+func (s *Server) RSCSend() {
+	for {
+		data := <-s.RSC
+		var r Request
+		json.Unmarshal(data, &r)
+		conn := s.GetSession(r.Head.UserAddr)
+		if conn != nil {
+			conn.Write(r.GetJson())
+		}
+	}
+}
+func (s *Server) GetSession(k string) net.Conn {
+	return s.Session[k]
 }
 
 //添加session

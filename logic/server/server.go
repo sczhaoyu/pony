@@ -4,6 +4,7 @@ import (
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
+	"sync"
 )
 
 var (
@@ -20,6 +21,7 @@ type Server struct {
 	HeartbeatTime int64               //心跳超时回收时间(秒)
 	MaxDataLen    int                 //最大接受数据长度
 	Session       map[string]net.Conn //session
+	SessionMutex  sync.Mutex          //会话操作锁
 }
 
 //创建服务
@@ -82,11 +84,16 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 }
 
 func (s *Server) AddSession(conn net.Conn) {
+	s.SessionMutex.Lock()
 	s.Session[conn.RemoteAddr().String()] = conn
+	s.SessionMutex.Unlock()
 }
 
-//关闭链接
+//关闭链接,删除session
 func (s *Server) CloseConn(conn net.Conn) {
+	s.SessionMutex.Lock()
+	delete(s.Session, conn.RemoteAddr().String())
+	s.SessionMutex.Unlock()
 	conn.Close()
 	<-s.MCC
 }

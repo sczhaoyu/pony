@@ -6,11 +6,12 @@ import (
 )
 
 type ResponseHead struct {
-	UserId int64  `json:"userId"`
-	Uuid   string `json:"uuid"`
-	Addr   string `json:"addr"`
-	Msg    string `json:"msg"`
-	State  int    `json:"state"`
+	UserId   int64  `json:"userId"`
+	Uuid     string `json:"uuid"`
+	Addr     string `json:"addr"`
+	Msg      string `json:"msg"`
+	State    int    `json:"state"`
+	UserAddr string `json:"userAddr"`
 }
 type Response struct {
 	Head *ResponseHead `json:"head"`
