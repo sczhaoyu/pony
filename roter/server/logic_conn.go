@@ -49,8 +49,10 @@ func (lc *LogicConn) ReadData() {
 		if err != nil {
 			lc.State = false
 			lc.RC <- 0
-
+			break
 		}
+		//通知客户端服务器 发送
+		//ClientServer.RSC <- data
 
 	}
 }
@@ -78,10 +80,10 @@ func (lc *LogicConn) CheckClient() {
 			lc.Conn, err = lc.newConn(lc.Addr)
 			if err == nil {
 				lc.State = true
-
 				log.Println("logic server reset client success")
+				go lc.ReadData()
 			} else {
-				time.Sleep(time.Second * 20)
+				time.Sleep(time.Second * 5)
 			}
 		}
 		lc.ConnMutex.Unlock()
