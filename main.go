@@ -21,11 +21,10 @@ func main() {
 	Client(conn)
 }
 
-var data []byte = []byte(`{"head":{"faceCode":100,"userId":0,"token":""}}`)
+var data []byte = []byte(`{"head":{"faceCode":100,"userId":1976,"token":""}}`)
 
 func Client(conn net.Conn) {
 	for {
-
 		tmp := util.IntToByteSlice(len(data))
 		tmp = append(tmp, data...)
 		conn.Write(tmp)

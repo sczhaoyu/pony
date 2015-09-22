@@ -60,7 +60,6 @@ func (s *RoterServer) ReadData(conn net.Conn) {
 		}
 		//提交给逻辑服务器
 		go s.SendLogic(data)
-
 	}
 }
 

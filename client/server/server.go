@@ -2,7 +2,8 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/sczhaoyu/pony/common"
+	"errors"
+	"github.com/sczhaoyu/pony/client/biz"
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
@@ -11,16 +12,16 @@ import (
 )
 
 type Server struct {
-	Ip             string                //服务器IP
-	Port           int                   //启动端口
-	Session        common.SessionManager //客户端链接会话
-	SessionMutex   sync.Mutex            //会话操作锁
-	SessionTimeOut int64                 //会话无动作超时
-	MaxClient      int                   //服务器最大链接
-	MaxClientChan  chan int              //链接处理通道
-	MaxSendLogic   int                   //推送客户端消息最大处理数量
-	MaxDataLen     int                   //最大接受数据长度
-	RSC            chan []byte           //回应客户端数据通道
+	Ip             string             //服务器IP
+	Port           int                //启动端口
+	Session        map[int64]net.Conn //客户端链接会话
+	SessionMutex   sync.Mutex         //会话操作锁
+	SessionTimeOut int64              //会话无动作超时
+	MaxClient      int                //服务器最大链接
+	MaxClientChan  chan int           //链接处理通道
+	MaxSendLogic   int                //推送客户端消息最大处理数量
+	MaxDataLen     int                //最大接受数据长度
+	RSC            chan []byte        //回应客户端数据通道
 	Roter          *RoterConn
 }
 
@@ -34,8 +35,7 @@ func NewServer(port int) *Server {
 	s.SessionTimeOut = 200
 	s.MaxClientChan = make(chan int, s.MaxClient)
 	s.MaxDataLen = 2048
-	s.RSC = make(chan []byte, s.MaxClient)
-	s.Session.Init()
+	s.Session = make(map[int64]net.Conn)
 	return &s
 }
 
@@ -64,18 +64,23 @@ func (s *Server) Start() {
 			conn.Close()
 			continue
 		}
-		s.MaxClientChan <- 1
-		c := common.NewConn(conn)
+
+		cErr, uid := s.CheckToken(conn)
+		if cErr != nil {
+			conn.Close()
+			continue
+		}
 		//加入会话
-		s.AddSession(c)
-		go s.ReadData(c)
+		s.AddSession(conn, uid)
+		s.MaxClientChan <- 1
+		go s.ReadData(conn, uid)
 		go s.RSCSend()
 	}
 
 }
 
 //读取客户端的数据
-func (s *Server) ReadData(conn *common.Conn) {
+func (s *Server) ReadData(conn net.Conn, uid int64) {
 	for {
 		timeout := make(chan bool, 1)
 		go func() {
@@ -85,29 +90,45 @@ func (s *Server) ReadData(conn *common.Conn) {
 		go func() {
 			data, err := util.ReadData(conn, s.MaxDataLen)
 			if err != nil {
-				s.CloseConn(conn)
+				s.CloseConn(uid)
 				return
 			}
-			//发送给逻辑服务器
-			data = NewRequest(conn, data).GetJson()
 			//让路由器链接发送给路由器处理
-			s.Roter.DataCh <- data
+			s.Roter.DataCh <- util.ByteLen(data)
 
 		}()
 		<-timeout //超时关闭链接
-		s.CloseConn(conn)
+		s.CloseConn(uid)
 		return
 	}
 
 }
 
+//检查token
+func (s *Server) CheckToken(conn net.Conn) (error, int64) {
+	//直接检查是否是注册用户
+	data, err := util.ReadData(conn, s.MaxDataLen)
+	if err != nil {
+		return err, 0
+	}
+	var rq Request
+	err = rq.Unmarshal(data)
+	if err != nil {
+		return err, 0
+	}
+	b := biz.CheckToken(rq.Head.Token)
+	if b == false {
+		return errors.New("token not found"), 0
+	}
+	return nil, rq.Head.UserId
+}
+
 //关闭链接
-func (s *Server) CloseConn(conn *common.Conn) {
+func (s *Server) CloseConn(uid int64) {
 	s.SessionMutex.Lock()
-	//删除session
-	delete(s.Session.Session, conn.UUID)
+	s.Session[uid].Close()
+	delete(s.Session, uid)
 	s.SessionMutex.Unlock()
-	conn.Close()
 	<-s.MaxClientChan
 }
 
@@ -117,22 +138,19 @@ func (s *Server) RSCSend() {
 		data := <-s.RSC
 		var r Request
 		json.Unmarshal(data, &r)
-		conn := s.GetSession(r.Head.Cid).ClientConn
+		conn := s.GetSession(r.Head.UserId)
 		if conn != nil {
 			conn.Write(r.GetJson())
 		}
 	}
 }
-func (s *Server) GetSession(k string) *common.UsersSession {
-	return s.Session.Session[k]
+func (s *Server) GetSession(userId int64) net.Conn {
+	return s.Session[userId]
 }
 
 //添加session
-func (s *Server) AddSession(conn *common.Conn) {
-	var u common.UsersSession
-	u.ClientConn = conn
-	u.UserAddr = conn.RemoteAddr().String()
-	u.UUID = conn.UUID
-	s.Session.Session[u.UUID] = &u
+func (s *Server) AddSession(conn net.Conn, uid int64) {
+	s.SessionMutex.Lock()
+	s.Session[uid] = conn
 	defer s.SessionMutex.Unlock()
 }
