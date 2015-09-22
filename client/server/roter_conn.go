@@ -16,10 +16,11 @@ type RoterConn struct {
 	DataCh     chan []byte //数据发送通道
 	Addr       string      //服务器链接地址 IP+Port格式
 	MaxDataLen int         //最大接受数据长度
+	Server     *Server
 }
 
 //创建连接
-func NewRoterConn(addr string) (*RoterConn, error) {
+func NewRoterConn(addr string, s *Server) (*RoterConn, error) {
 	var lc RoterConn
 	lc.Addr = addr
 	conn, err := lc.newConn(addr)
@@ -32,6 +33,7 @@ func NewRoterConn(addr string) (*RoterConn, error) {
 	lc.MaxDataLen = 2048
 	lc.RC = make(chan int, 1)
 	lc.DataCh = make(chan []byte, 100)
+	lc.Server = s
 	return &lc, err
 }
 func (lc *RoterConn) Start() {
@@ -51,10 +53,7 @@ func (lc *RoterConn) ReadData() {
 			lc.RC <- 0
 			break
 		}
-		log.Println(string(data))
-		//写入队列
-		//ClientServer.RSC <- data
-
+		lc.Server.RSC <- data
 	}
 }
 

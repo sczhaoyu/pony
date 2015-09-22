@@ -10,7 +10,7 @@ import (
 type RoterServer struct {
 	Ip           string                  //服务器IP
 	Port         int                     //启动端口
-	Session      map[string]*net.TCPConn //客户端链接会话
+	Session      map[string]*net.TCPConn //链接路由的客户端会话
 	SessionMutex sync.Mutex              //会话操作锁
 	LSM          *LogicServerManager     //逻辑服务管理
 	MaxDataLen   int                     //最大接受数据长度
@@ -87,6 +87,6 @@ func (s *RoterServer) CloseConn(conn net.Conn) {
 func (s *RoterServer) ResponseHandle() {
 	for {
 		data := <-s.LSM.RspChan
-		log.Println("报文:", string(data))
+		handler(s, data)
 	}
 }

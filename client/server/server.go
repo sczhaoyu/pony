@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/sczhaoyu/pony/common"
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
@@ -10,33 +11,32 @@ import (
 )
 
 type Server struct {
-	Ip             string                  //服务器IP
-	Port           int                     //启动端口
-	Session        map[string]*net.TCPConn //客户端链接会话
-	SessionMutex   sync.Mutex              //会话操作锁
-	SessionTimeOut int64                   //会话无动作超时
-	MaxClient      int                     //服务器最大链接
-	MaxClientChan  chan int                //链接处理通道
-	MaxSendLogic   int                     //推送客户端消息最大处理数量
-	MaxDataLen     int                     //最大接受数据长度
-	RSC            chan []byte             //回应客户端数据通道
+	Ip             string                //服务器IP
+	Port           int                   //启动端口
+	Session        common.SessionManager //客户端链接会话
+	SessionMutex   sync.Mutex            //会话操作锁
+	SessionTimeOut int64                 //会话无动作超时
+	MaxClient      int                   //服务器最大链接
+	MaxClientChan  chan int              //链接处理通道
+	MaxSendLogic   int                   //推送客户端消息最大处理数量
+	MaxDataLen     int                   //最大接受数据长度
+	RSC            chan []byte           //回应客户端数据通道
 	Roter          *RoterConn
 }
 
-var ClientServer Server
-
 //创建服务
 func NewServer(port int) *Server {
-	ClientServer.Port = port
-	ClientServer.Ip = ""
-	ClientServer.MaxClient = 200
-	ClientServer.MaxSendLogic = 5000
-	ClientServer.SessionTimeOut = 200
-	ClientServer.MaxClientChan = make(chan int, ClientServer.MaxClient)
-	ClientServer.MaxDataLen = 2048
-	ClientServer.RSC = make(chan []byte, ClientServer.MaxClient)
-	ClientServer.Session = make(map[string]*net.TCPConn)
-	return &ClientServer
+	var s Server
+	s.Port = port
+	s.Ip = ""
+	s.MaxClient = 200
+	s.MaxSendLogic = 5000
+	s.SessionTimeOut = 200
+	s.MaxClientChan = make(chan int, s.MaxClient)
+	s.MaxDataLen = 2048
+	s.RSC = make(chan []byte, s.MaxClient)
+	s.Session.Init()
+	return &s
 }
 
 //启动服务
@@ -48,7 +48,7 @@ func (s *Server) Start() {
 	}
 	log.Println("client server start success:", s.Port)
 	//启动路由器链接
-	r, rr := NewRoterConn("127.0.0.1:8061")
+	r, rr := NewRoterConn("127.0.0.1:8061", s)
 	if rr != nil {
 		log.Println("roter server error:", rr.Error())
 		return
@@ -61,20 +61,21 @@ func (s *Server) Start() {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
 			log.Println("client error:", err.Error())
-			s.CloseConn(conn)
+			conn.Close()
 			continue
 		}
 		s.MaxClientChan <- 1
+		c := common.NewConn(conn)
 		//加入会话
-		s.AddSession(conn)
-		go s.ReadData(conn)
+		s.AddSession(c)
+		go s.ReadData(c)
 		go s.RSCSend()
 	}
 
 }
 
 //读取客户端的数据
-func (s *Server) ReadData(conn *net.TCPConn) {
+func (s *Server) ReadData(conn *common.Conn) {
 	for {
 		timeout := make(chan bool, 1)
 		go func() {
@@ -89,7 +90,8 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 			}
 			//发送给逻辑服务器
 			data = NewRequest(conn, data).GetJson()
-			s.Put(data)
+			//让路由器链接发送给路由器处理
+			s.Roter.DataCh <- data
 
 		}()
 		<-timeout //超时关闭链接
@@ -100,18 +102,13 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 }
 
 //关闭链接
-func (s *Server) CloseConn(conn *net.TCPConn) {
+func (s *Server) CloseConn(conn *common.Conn) {
 	s.SessionMutex.Lock()
 	//删除session
-	delete(s.Session, conn.RemoteAddr().String())
+	delete(s.Session.Session, conn.UUID)
 	s.SessionMutex.Unlock()
 	conn.Close()
 	<-s.MaxClientChan
-}
-
-//发送给路由器处理
-func (s *Server) Put(data []byte) {
-	s.Roter.DataCh <- data
 }
 
 //回应客户端数据
@@ -120,20 +117,22 @@ func (s *Server) RSCSend() {
 		data := <-s.RSC
 		var r Request
 		json.Unmarshal(data, &r)
-		conn := s.GetSession(r.Head.UserAddr)
+		conn := s.GetSession(r.Head.Cid).ClientConn
 		if conn != nil {
 			conn.Write(r.GetJson())
 		}
 	}
 }
-func (s *Server) GetSession(k string) net.Conn {
-	return s.Session[k]
+func (s *Server) GetSession(k string) *common.UsersSession {
+	return s.Session.Session[k]
 }
 
 //添加session
-func (s *Server) AddSession(conn *net.TCPConn) {
-	k := conn.RemoteAddr().String()
-	s.SessionMutex.Lock()
-	s.Session[k] = conn
+func (s *Server) AddSession(conn *common.Conn) {
+	var u common.UsersSession
+	u.ClientConn = conn
+	u.UserAddr = conn.RemoteAddr().String()
+	u.UUID = conn.UUID
+	s.Session.Session[u.UUID] = &u
 	defer s.SessionMutex.Unlock()
 }
