@@ -37,6 +37,7 @@ func (s *RoterServer) Run() {
 	//启动逻辑服务器链接
 	s.LSM = NewLogicServerManager("127.0.0.1:8456")
 	go s.LSM.Start()
+	go s.ResponseHandle()
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
@@ -83,6 +84,9 @@ func (s *RoterServer) CloseConn(conn net.Conn) {
 //接收逻辑服务器回应结果
 //分发处理
 //缓冲区阻塞处理
-func (s *RoterServer) ResponseHandle(data []byte) {
-
+func (s *RoterServer) ResponseHandle() {
+	for {
+		data := <-s.LSM.RspChan
+		log.Println("报文:", string(data))
+	}
 }

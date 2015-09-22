@@ -53,10 +53,7 @@ func (lc *LogicConn) ReadData() {
 			lc.RC <- 0
 			break
 		}
-		log.Println("logic server info:", string(data))
-		//通知客户端服务器 发送
-		//ClientServer.RSC <- data
-
+		lc.LSM.RspChan <- data
 	}
 }
 
