@@ -6,6 +6,7 @@ import (
 )
 
 func main() {
-	NewRoterServer(8061).Run()
 	runtime.SetCPUProfileRate(runtime.NumCPU())
+	NewRoterServer(8061).Run()
+
 }
