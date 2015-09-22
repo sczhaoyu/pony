@@ -20,6 +20,7 @@ type Server struct {
 	MaxSendLogic   int                     //推送客户端消息最大处理数量
 	MaxDataLen     int                     //最大接受数据长度
 	RSC            chan []byte             //回应客户端数据通道
+	Roter          *RoterConn
 }
 
 var ClientServer Server
@@ -47,7 +48,15 @@ func (s *Server) Start() {
 	}
 	log.Println("client server start success:", s.Port)
 	//启动路由器链接
-
+	r, rr := NewRoterConn("127.0.0.1:8061")
+	if rr != nil {
+		log.Println("roter server error:", rr.Error())
+		return
+	} else {
+		log.Println("roter server success:")
+	}
+	s.Roter = r
+	go r.Start()
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
@@ -86,7 +95,6 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 		<-timeout //超时关闭链接
 		s.CloseConn(conn)
 		return
-
 	}
 
 }
@@ -103,7 +111,7 @@ func (s *Server) CloseConn(conn *net.TCPConn) {
 
 //发送给路由器处理
 func (s *Server) Put(data []byte) {
-
+	s.Roter.DataCh <- data
 }
 
 //回应客户端数据

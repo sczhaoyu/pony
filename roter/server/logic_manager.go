@@ -9,6 +9,7 @@ type LogicServerManager struct {
 	MaxConn  int             //最大链接
 	ConnChan chan *LogicConn //链接通道
 	SendChan chan []byte     //发送数据通道
+	RspChan  chan []byte     //回应数据通道
 }
 
 func NewLogicServerManager(addr string) *LogicServerManager {
@@ -17,12 +18,13 @@ func NewLogicServerManager(addr string) *LogicServerManager {
 	ls.MaxConn = 1
 	ls.ConnChan = make(chan *LogicConn, ls.MaxConn)
 	ls.SendChan = make(chan []byte, ls.MaxConn)
+	ls.RspChan = make(chan []byte, ls.MaxConn)
 	return &ls
 }
 func (l *LogicServerManager) Start() {
 	//初始化链接
 	for i := 0; i < l.MaxConn; i++ {
-		conn, err := NewLogicConn(l.Addr)
+		conn, err := NewLogicConn(l.Addr, l)
 		if err != nil {
 			log.Println("logic server error:", err.Error())
 			return

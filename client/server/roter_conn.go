@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type LogicConn struct {
+type RoterConn struct {
 	net.Conn               //会话
 	State      bool        //链接状态
 	RC         chan int    //重置通道信号
@@ -19,8 +19,8 @@ type LogicConn struct {
 }
 
 //创建连接
-func NewLogicConn(addr string) (*LogicConn, error) {
-	var lc LogicConn
+func NewRoterConn(addr string) (*RoterConn, error) {
+	var lc RoterConn
 	lc.Addr = addr
 	conn, err := lc.newConn(addr)
 	if err != nil {
@@ -34,7 +34,7 @@ func NewLogicConn(addr string) (*LogicConn, error) {
 	lc.DataCh = make(chan []byte, 100)
 	return &lc, err
 }
-func (lc *LogicConn) Start() {
+func (lc *RoterConn) Start() {
 	//状态监测
 	go lc.CheckClient()
 	go lc.ReadData()
@@ -43,22 +43,23 @@ func (lc *LogicConn) Start() {
 }
 
 //读取数据
-func (lc *LogicConn) ReadData() {
+func (lc *RoterConn) ReadData() {
 	for {
-		_, err := util.ReadData(lc.Conn, lc.MaxDataLen)
+		data, err := util.ReadData(lc.Conn, lc.MaxDataLen)
 		if err != nil {
 			lc.State = false
 			lc.RC <- 0
 			break
 		}
-		//发送给路由器
+		log.Println(string(data))
+		//写入队列
 		//ClientServer.RSC <- data
 
 	}
 }
 
 //阻塞发送数据
-func (lc *LogicConn) SendData() {
+func (lc *RoterConn) SendData() {
 	for {
 		data := <-lc.DataCh
 		lc.ConnMutex.Lock()
@@ -68,7 +69,7 @@ func (lc *LogicConn) SendData() {
 }
 
 //检查链接的完整
-func (lc *LogicConn) CheckClient() {
+func (lc *RoterConn) CheckClient() {
 	for {
 		<-lc.RC
 		lc.ConnMutex.Lock()
@@ -80,7 +81,7 @@ func (lc *LogicConn) CheckClient() {
 			lc.Conn, err = lc.newConn(lc.Addr)
 			if err == nil {
 				lc.State = true
-				log.Println("logic server reset client success")
+				log.Println("roter server reset client success")
 				go lc.ReadData()
 			} else {
 				time.Sleep(time.Second * 5)
@@ -91,7 +92,7 @@ func (lc *LogicConn) CheckClient() {
 }
 
 //创建一个链接
-func (lc *LogicConn) newConn(addr string) (net.Conn, error) {
+func (lc *RoterConn) newConn(addr string) (net.Conn, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err

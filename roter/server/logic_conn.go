@@ -9,17 +9,18 @@ import (
 )
 
 type LogicConn struct {
-	net.Conn               //会话
-	State      bool        //链接状态
-	RC         chan int    //重置通道信号
-	ConnMutex  sync.Mutex  //数据发送锁
-	DataCh     chan []byte //数据发送通道
-	Addr       string      //服务器链接地址 IP+Port格式
-	MaxDataLen int         //最大接受数据长度
+	net.Conn                       //会话
+	State      bool                //链接状态
+	RC         chan int            //重置通道信号
+	ConnMutex  sync.Mutex          //数据发送锁
+	DataCh     chan []byte         //数据发送通道
+	Addr       string              //服务器链接地址 IP+Port格式
+	MaxDataLen int                 //最大接受数据长度
+	LSM        *LogicServerManager //逻辑管理者
 }
 
 //创建连接
-func NewLogicConn(addr string) (*LogicConn, error) {
+func NewLogicConn(addr string, lsm *LogicServerManager) (*LogicConn, error) {
 	var lc LogicConn
 	lc.Addr = addr
 	conn, err := lc.newConn(addr)
@@ -32,6 +33,7 @@ func NewLogicConn(addr string) (*LogicConn, error) {
 	lc.MaxDataLen = 2048
 	lc.RC = make(chan int, 1)
 	lc.DataCh = make(chan []byte, 100)
+	lc.LSM = lsm
 	return &lc, err
 }
 func (lc *LogicConn) Start() {
@@ -45,12 +47,13 @@ func (lc *LogicConn) Start() {
 //读取数据
 func (lc *LogicConn) ReadData() {
 	for {
-		_, err := util.ReadData(lc.Conn, lc.MaxDataLen)
+		data, err := util.ReadData(lc.Conn, lc.MaxDataLen)
 		if err != nil {
 			lc.State = false
 			lc.RC <- 0
 			break
 		}
+		log.Println("logic server info:", string(data))
 		//通知客户端服务器 发送
 		//ClientServer.RSC <- data
 
