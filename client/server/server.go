@@ -18,7 +18,6 @@ type Server struct {
 	MaxClient      int                     //服务器最大链接
 	MaxClientChan  chan int                //链接处理通道
 	MaxSendLogic   int                     //推送客户端消息最大处理数量
-	LSM            *LogicServerManager     //逻辑服务管理
 	MaxDataLen     int                     //最大接受数据长度
 	RSC            chan []byte             //回应客户端数据通道
 }
@@ -47,9 +46,8 @@ func (s *Server) Start() {
 		return
 	}
 	log.Println("client server start success:", s.Port)
-	//启动逻辑服务器链接
-	s.LSM = NewLogicServerManager("127.0.0.1:8456")
-	go s.LSM.Start()
+	//启动路由器链接
+
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
@@ -103,10 +101,9 @@ func (s *Server) CloseConn(conn *net.TCPConn) {
 	<-s.MaxClientChan
 }
 
-//发送逻辑服务器处理
+//发送给路由器处理
 func (s *Server) Put(data []byte) {
-	//写入数据库 备份
-	s.LSM.SendChan <- data
+
 }
 
 //回应客户端数据

@@ -45,14 +45,14 @@ func (lc *LogicConn) Start() {
 //读取数据
 func (lc *LogicConn) ReadData() {
 	for {
-		data, err := util.ReadData(lc.Conn, lc.MaxDataLen)
+		_, err := util.ReadData(lc.Conn, lc.MaxDataLen)
 		if err != nil {
 			lc.State = false
 			lc.RC <- 0
 			break
 		}
-		//通知客户端服务器 发送
-		ClientServer.RSC <- data
+		//发送给路由器
+		//ClientServer.RSC <- data
 
 	}
 }
