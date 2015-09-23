@@ -21,14 +21,14 @@ type Server struct {
 	MaxSendLogic   int             //推送客户端消息最大处理数量
 	MaxDataLen     int             //最大接受数据长度
 	RSC            chan []byte     //回应客户端数据通道
-	Roter          *RoterConn
+	LSM            *LogicServerManager
 }
 
 //创建服务
 func NewServer(port int) *Server {
 	var s Server
 	s.Port = port
-	s.Ip = ""
+	s.Ip = "127.0.0.1"
 	s.MaxClient = 200
 	s.MaxSendLogic = 5000
 	s.SessionTimeOut = 200
@@ -45,17 +45,11 @@ func (s *Server) Start() {
 		log.Println("client server start error:", err.Error())
 		return
 	}
-	log.Println("client server start success:", s.Port)
-	//启动路由器链接
-	r, rr := NewRoterConn("127.0.0.1:8061", s)
-	if rr != nil {
-		log.Println("roter server error:", rr.Error())
-		return
-	} else {
-		log.Println("roter server success:")
-	}
-	s.Roter = r
-	go r.Start()
+	log.Println("client server start success:", listen.Addr().String())
+	//启动逻辑服务器链接
+	lsm := NewLogicServerManager("127.0.0.1:8456")
+	s.LSM = lsm
+	go s.LSM.Start()
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
@@ -85,8 +79,8 @@ func (s *Server) ReadData(session *session.Session) {
 				s.CloseConn(session)
 				return
 			}
-			//让路由器链接发送给路由器处理
-			s.Roter.DataCh <- NewRequestJson(data, session.SESSIONID)
+			//转发逻辑服务端链接
+			s.LSM.SendChan <- common.NewRequestJson(data, session.SESSIONID)
 
 		}()
 		<-timeout //超时关闭链接
@@ -105,12 +99,13 @@ func (s *Server) CloseConn(si *session.Session) {
 //回应客户端数据
 func (s *Server) RSCSend() {
 	for {
-		data := <-s.RSC
-		var r Request
+		data := <-s.LSM.RspChan
+		log.Println(string(data))
+		var r common.Request
 		r.Unmarshal(data)
 		conn := s.Session.GetSession(r.Head.SessionId)
 		if conn != nil {
-			conn.Write(r.GetJson())
+			conn.Write(util.GetJsonByteLen(r))
 		}
 	}
 }

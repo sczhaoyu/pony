@@ -8,20 +8,20 @@ import (
 	"time"
 )
 
-type RoterConn struct {
-	net.Conn               //会话
-	State      bool        //链接状态
-	RC         chan int    //重置通道信号
-	ConnMutex  sync.Mutex  //数据发送锁
-	DataCh     chan []byte //数据发送通道
-	Addr       string      //服务器链接地址 IP+Port格式
-	MaxDataLen int         //最大接受数据长度
-	Server     *Server
+type LogicConn struct {
+	net.Conn                       //会话
+	State      bool                //链接状态
+	RC         chan int            //重置通道信号
+	ConnMutex  sync.Mutex          //数据发送锁
+	DataCh     chan []byte         //数据发送通道
+	Addr       string              //服务器链接地址 IP+Port格式
+	MaxDataLen int                 //最大接受数据长度
+	LSM        *LogicServerManager //逻辑服务管理者
 }
 
 //创建连接
-func NewRoterConn(addr string, s *Server) (*RoterConn, error) {
-	var lc RoterConn
+func NewLogicConn(addr string, lsm *LogicServerManager) (*LogicConn, error) {
+	var lc LogicConn
 	lc.Addr = addr
 	conn, err := lc.newConn(addr)
 	if err != nil {
@@ -33,10 +33,10 @@ func NewRoterConn(addr string, s *Server) (*RoterConn, error) {
 	lc.MaxDataLen = 2048
 	lc.RC = make(chan int, 1)
 	lc.DataCh = make(chan []byte, 100)
-	lc.Server = s
+	lc.LSM = lsm
 	return &lc, err
 }
-func (lc *RoterConn) Start() {
+func (lc *LogicConn) Start() {
 	//状态监测
 	go lc.CheckClient()
 	go lc.ReadData()
@@ -45,7 +45,7 @@ func (lc *RoterConn) Start() {
 }
 
 //读取数据
-func (lc *RoterConn) ReadData() {
+func (lc *LogicConn) ReadData() {
 	for {
 		data, err := util.ReadData(lc.Conn, lc.MaxDataLen)
 		if err != nil {
@@ -53,12 +53,13 @@ func (lc *RoterConn) ReadData() {
 			lc.RC <- 0
 			break
 		}
-		lc.Server.RSC <- data
+
+		lc.LSM.RspChan <- data
 	}
 }
 
 //阻塞发送数据
-func (lc *RoterConn) SendData() {
+func (lc *LogicConn) SendData() {
 	for {
 		data := <-lc.DataCh
 		lc.ConnMutex.Lock()
@@ -68,7 +69,7 @@ func (lc *RoterConn) SendData() {
 }
 
 //检查链接的完整
-func (lc *RoterConn) CheckClient() {
+func (lc *LogicConn) CheckClient() {
 	for {
 		<-lc.RC
 		lc.ConnMutex.Lock()
@@ -91,7 +92,7 @@ func (lc *RoterConn) CheckClient() {
 }
 
 //创建一个链接
-func (lc *RoterConn) newConn(addr string) (net.Conn, error) {
+func (lc *LogicConn) newConn(addr string) (net.Conn, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err

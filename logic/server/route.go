@@ -14,12 +14,12 @@ func registerRoter() {
 func handler(c *Conn, data []byte) {
 	err := json.Unmarshal(data, &c.Request)
 	if err != nil {
-		c.Write(err)
+		c.Out(err)
 		return
 	}
 	h := roter[c.Head.FaceCode]
 	if h == nil {
-		c.Write(errors.New("Does not exist faceCode?"))
+		c.Out(errors.New("Does not exist faceCode?"))
 		return
 	}
 	//加入拦截器 检查身份

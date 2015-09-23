@@ -11,6 +11,7 @@ type ResponseHead struct {
 	Msg       string `json:"msg"`
 	State     int    `json:"state"`
 	SessionId string `json:"sessionId"`
+	Addr      string `json:"addr"`
 }
 type Response struct {
 	Head *ResponseHead `json:"head"`

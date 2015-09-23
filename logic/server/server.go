@@ -17,7 +17,7 @@ type Server struct {
 	MaxClient     int                 //服务器最大链接
 	MCC           chan int            //链接处理通道
 	MaxPush       int                 //推送消息最大处理数量
-	RspC          chan *Response      //推送消息数据通道
+	RspC          chan *Write         //推送消息数据通道
 	HeartbeatTime int64               //心跳超时回收时间(秒)
 	MaxDataLen    int                 //最大接受数据长度
 	Session       map[string]net.Conn //session
@@ -32,7 +32,7 @@ func NewServer(port int) *Server {
 	s.MaxPush = 50000
 	s.HeartbeatTime = 20
 	s.MaxDataLen = 2048
-	s.RspC = make(chan *Response, s.MaxPush)
+	s.RspC = make(chan *Write, s.MaxPush)
 	s.MCC = make(chan int, s.MaxClient)
 	s.Session = make(map[string]net.Conn)
 	return &s
@@ -99,20 +99,14 @@ func (s *Server) CloseConn(conn net.Conn) {
 }
 
 //加入消息
-func (s *Server) Put(r *Response) {
+func (s *Server) Put(r *Write) {
 	s.RspC <- r
-}
-
-//获取链接
-func (s *Server) GetConn(r *Response) net.Conn {
-	return s.Session[r.Head.Addr]
 }
 
 //发送消息
 func (s *Server) sendMsg() {
 	for {
 		rsp := <-s.RspC
-		log.Println(rsp)
-		s.GetConn(rsp).Write(rsp.GetJson())
+		rsp.Out()
 	}
 }

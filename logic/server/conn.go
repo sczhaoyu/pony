@@ -1,13 +1,14 @@
 package server
 
 import (
+	"github.com/sczhaoyu/pony/common"
 	"github.com/sczhaoyu/pony/util"
 	"net"
 )
 
 type Conn struct {
 	net.Conn
-	Request
+	common.Request
 	*Server
 }
 
@@ -19,13 +20,11 @@ func NewConn(conn net.Conn, s *Server) *Conn {
 }
 
 //生成响应
-func (c *Conn) NewResponse(d interface{}) *Response {
-	var w Response
-	w.Head = new(ResponseHead)
-	w.Head.Addr = c.RemoteAddr().String()
-	w.Head.Uuid = util.GetUUID()
+func (c *Conn) NewResponse(d interface{}) *common.Response {
+	var w common.Response
+	w.Head = new(common.ResponseHead)
 	w.Head.UserId = c.Head.UserId
-	w.Head.UserAddr = c.Head.UserAddr
+	w.Head.SessionId = c.Request.Head.SessionId
 	switch err := d.(type) {
 	case int:
 		w.Head.Msg = ErrMsg[d.(int)]
@@ -39,6 +38,9 @@ func (c *Conn) NewResponse(d interface{}) *Response {
 	}
 	return &w
 }
-func (c *Conn) Write(data interface{}) {
-	c.Put(c.NewResponse(data))
+func (c *Conn) Out(data interface{}) {
+	var w Write
+	w.Conn = c
+	w.Body = util.GetJsonByteLen(c.NewResponse(data))
+	c.Put(&w)
 }

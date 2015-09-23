@@ -21,7 +21,7 @@ func NewRequestJson(data []byte, sessionId string) []byte {
 	var r Request
 	r.Unmarshal(data)
 	r.Head.SessionId = sessionId
-	return r.GetJson()
+	return util.GetJsonByteLen(r)
 }
 func (r *Request) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, &r)
