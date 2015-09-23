@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"code.google.com/p/go-uuid/uuid"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -13,6 +14,10 @@ import (
 //生成一个UUID
 func GetUUID() string {
 	return strings.Replace(uuid.NewUUID().String(), "-", "", -1)
+}
+func GetJsonByteLen(d interface{}) []byte {
+	data, _ := json.Marshal(d)
+	return ByteLen(data)
 }
 func ByteLen(data []byte) []byte {
 	tmp := IntToByteSlice(len(data))
