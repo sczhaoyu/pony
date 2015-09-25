@@ -9,6 +9,7 @@ type RequestHeader struct {
 	SessionId string `json:"sessionId"`
 	UserId    int64  `json:"userId"`
 	FaceCode  int    `json:"faceCode"`
+	Err       string `json:"err"`
 	Token     string `json:"token"`
 }
 
