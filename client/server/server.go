@@ -46,10 +46,14 @@ func (s *Server) Start() {
 		return
 	}
 	log.Println("client server start success:", listen.Addr().String())
+	//启动后台管理服务器链接
+	a := common.NewAdminConn("127.0.0.1:2058")
+	a.Run()
 	//启动逻辑服务器链接
 	lsm := NewLogicServerManager("127.0.0.1:8456", s)
 	s.LSM = lsm
 	go s.LSM.Start()
+
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {

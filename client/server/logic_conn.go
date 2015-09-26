@@ -21,27 +21,32 @@ type LogicConn struct {
 }
 
 //创建连接
-func NewLogicConn(addr string, lsm *LogicServerManager) (*LogicConn, error) {
+func NewLogicConn(addr string, lsm *LogicServerManager) *LogicConn {
 	var lc LogicConn
 	lc.Addr = addr
-	conn, err := lc.newConn(addr)
-	if err != nil {
-
-		return nil, err
-	}
 	lc.ResetTimeOut = 2
-	lc.Conn = conn
 	lc.State = true
 	lc.MaxDataLen = 2048
 	lc.RC = make(chan int, 1)
 	lc.DataCh = make(chan []byte, 100)
 	lc.LSM = lsm
-	return &lc, err
+	return &lc
 }
 func (lc *LogicConn) Start() {
+	go func() {
+		conn, err := lc.newConn(lc.Addr)
+		if err != nil {
+			lc.State = false
+			lc.RC <- 0
+		} else {
+			log.Println("logic server success!")
+			lc.Conn = conn
+			go lc.ReadData()
+		}
+
+	}()
 	//状态监测
 	go lc.CheckClient()
-	go lc.ReadData()
 	go lc.SendData()
 
 }

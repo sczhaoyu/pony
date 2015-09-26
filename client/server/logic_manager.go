@@ -2,7 +2,6 @@ package server
 
 import (
 	"github.com/sczhaoyu/pony/common"
-	"log"
 )
 
 type LogicServerManager struct {
@@ -27,15 +26,10 @@ func NewLogicServerManager(addr string, c *Server) *LogicServerManager {
 func (l *LogicServerManager) Start() {
 	//初始化链接
 	for i := 0; i < l.MaxConn; i++ {
-		conn, err := NewLogicConn(l.Addr, l)
-		if err != nil {
-			log.Println("logic server error:", err.Error())
-			return
-		}
+		conn := NewLogicConn(l.Addr, l)
 		l.ConnChan <- conn
 		conn.Start()
 	}
-	log.Println("logic server success:", l.Addr)
 	go l.SendLogic()
 }
 
