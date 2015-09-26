@@ -1,8 +1,8 @@
 package server
 
 func register(c *Conn) {
-	c.Out("data")
+	c.Out([]byte("111"))
 }
 func bind(c *Conn) {
-	c.Out("success")
+	c.Out([]byte("success"))
 }

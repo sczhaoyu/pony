@@ -7,10 +7,8 @@ import (
 
 type RequestHeader struct {
 	SessionId string `json:"sessionId"`
-	UserId    int64  `json:"userId"`
-	FaceCode  int    `json:"faceCode"`
+	Command   string `json:"command"`
 	Err       string `json:"err"`
-	Token     string `json:"token"`
 }
 
 type Request struct {
@@ -20,8 +18,9 @@ type Request struct {
 
 func NewRequestJson(data []byte, sessionId string) []byte {
 	var r Request
-	r.Unmarshal(data)
+	r.Head = new(RequestHeader)
 	r.Head.SessionId = sessionId
+	r.Body = data
 	return util.GetJsonByteLen(r)
 }
 func (r *Request) Unmarshal(data []byte) error {

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"net"
 	"sync"
 )
@@ -52,7 +51,6 @@ func (s *SessionManager) SetSession(c net.Conn, scName string) {
 		sc[c.RemoteAddr().String()] = c
 	}
 	defer s.mutex.Unlock()
-	log.Println(s.SCName)
 }
 
 func (s *SessionManager) RemoveAddrSession(addr string) {
@@ -67,5 +65,4 @@ func (s *SessionManager) RemoveAddrSession(addr string) {
 		}
 	}
 	defer s.mutex.Unlock()
-	log.Println(s.SCName)
 }

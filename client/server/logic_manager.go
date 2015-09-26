@@ -15,7 +15,7 @@ type LogicServerManager struct {
 func NewLogicServerManager(addr string) *LogicServerManager {
 	var ls LogicServerManager
 	ls.Addr = addr
-	ls.MaxConn = 1
+	ls.MaxConn = 2
 	ls.ConnChan = make(chan *LogicConn, ls.MaxConn)
 	ls.SendChan = make(chan []byte, ls.MaxConn)
 	ls.RspChan = make(chan []byte, ls.MaxConn)

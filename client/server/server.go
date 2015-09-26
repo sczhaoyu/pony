@@ -100,12 +100,11 @@ func (s *Server) CloseConn(si *session.Session) {
 func (s *Server) RSCSend() {
 	for {
 		data := <-s.LSM.RspChan
-		log.Println(string(data))
 		var r common.Request
 		r.Unmarshal(data)
 		conn := s.Session.GetSession(r.Head.SessionId)
 		if conn != nil {
-			conn.Write(util.GetJsonByteLen(r))
+			conn.Write(r.Body)
 		}
 	}
 }

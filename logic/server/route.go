@@ -5,23 +5,23 @@ import (
 	"errors"
 )
 
-var roter map[int]func(*Conn) = make(map[int]func(*Conn))
+var roter map[string]func(*Conn) = make(map[string]func(*Conn))
 
 func registerRoter() {
 	//用户绑定
-	roter[99] = bind
+	roter["99"] = bind
 	//用户注册
-	roter[100] = register
+	roter["100"] = register
 }
 func handler(c *Conn, data []byte) {
 	err := json.Unmarshal(data, &c.Request)
 	if err != nil {
-		c.Out(err)
+		c.Out([]byte(err.Error()))
 		return
 	}
-	h := roter[c.Head.FaceCode]
+	h := roter[c.Head.Command]
 	if h == nil {
-		c.Out(errors.New("Does not exist faceCode?"))
+		c.Out([]byte(errors.New("Does not exist command?").Error()))
 		return
 	}
 	//加入拦截器 检查身份

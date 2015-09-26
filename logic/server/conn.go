@@ -20,26 +20,15 @@ func NewConn(conn net.Conn, s *Server) *Conn {
 }
 
 //生成响应
-func (c *Conn) NewResponse(d interface{}) *common.Response {
+func (c *Conn) NewResponse(data []byte) *common.Response {
 	var w common.Response
 	w.Head = new(common.ResponseHead)
-	w.Head.UserId = c.Head.UserId
 	w.Head.SessionId = c.Request.Head.SessionId
-	w.Head.FaceCode = c.Request.Head.FaceCode
-	switch err := d.(type) {
-	case int:
-		w.Head.Err = ErrMsg[d.(int)]
-		w.Head.State = d.(int)
-	case error:
-		w.Head.Err = err.Error()
-		w.Head.State = -1
-	default:
-		w.Head.State = 0
-		w.Body = d
-	}
+	w.Head.Command = c.Request.Head.Command
+	w.Body = data
 	return &w
 }
-func (c *Conn) Out(data interface{}) {
+func (c *Conn) Out(data []byte) {
 	var w Write
 	w.Conn = c
 	w.Body = util.GetJsonByteLen(c.NewResponse(data))

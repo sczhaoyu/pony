@@ -11,15 +11,14 @@ var (
 )
 
 type Server struct {
-	Ip            string         //服务器IP
-	Port          int            //启动端口
-	MaxClient     int            //服务器最大链接
-	MCC           chan int       //链接处理通道
-	MaxPush       int            //推送消息最大处理数量
-	RspC          chan *Write    //推送消息数据通道
-	HeartbeatTime int64          //心跳超时回收时间(秒)
-	MaxDataLen    int            //最大接受数据长度
-	Session       SessionManager //会话管理
+	Ip         string         //服务器IP
+	Port       int            //启动端口
+	MaxClient  int            //服务器最大链接
+	MCC        chan int       //链接处理通道
+	MaxPush    int            //推送消息最大处理数量
+	RspC       chan *Write    //推送消息数据通道
+	MaxDataLen int            //最大接受数据长度
+	Session    SessionManager //会话管理
 }
 
 //创建服务
@@ -28,7 +27,6 @@ func NewServer(port int) *Server {
 	s.Ip = ""
 	s.MaxClient = 200
 	s.MaxPush = 50000
-	s.HeartbeatTime = 20
 	s.MaxDataLen = 2048
 	s.RspC = make(chan *Write, s.MaxPush)
 	s.MCC = make(chan int, s.MaxClient)

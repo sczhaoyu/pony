@@ -53,7 +53,7 @@ func (lc *LogicConn) ReadData() {
 			lc.RC <- 0
 			break
 		}
-
+		log.Println(string(data))
 		lc.LSM.RspChan <- data
 	}
 }

@@ -6,11 +6,9 @@ import (
 )
 
 type ResponseHead struct {
-	UserId    int64  `json:"userId"`
 	Err       string `json:"err"`
-	State     int    `json:"state"`
 	SessionId string `json:"sessionId"`
-	FaceCode  int    `json:"faceCode"`
+	Command   string `json:"command"`
 }
 type Response struct {
 	Head *ResponseHead `json:"head"`
