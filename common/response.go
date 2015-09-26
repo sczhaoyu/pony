@@ -15,6 +15,13 @@ type Response struct {
 	Body []byte        `json:"body"`
 }
 
+func AuthResponse(command string, data []byte) *Response {
+	var r Response
+	r.Head = new(ResponseHead)
+	r.Head.Command = command
+	r.Body = data
+	return &r
+}
 func NewResponseSid(sessionId string, data []byte) *Response {
 	var r Response
 	r.Head = new(ResponseHead)
