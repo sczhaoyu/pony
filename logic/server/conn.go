@@ -25,12 +25,13 @@ func (c *Conn) NewResponse(d interface{}) *common.Response {
 	w.Head = new(common.ResponseHead)
 	w.Head.UserId = c.Head.UserId
 	w.Head.SessionId = c.Request.Head.SessionId
+	w.Head.FaceCode = c.Request.Head.FaceCode
 	switch err := d.(type) {
 	case int:
-		w.Head.Msg = ErrMsg[d.(int)]
+		w.Head.Err = ErrMsg[d.(int)]
 		w.Head.State = d.(int)
 	case error:
-		w.Head.Msg = err.Error()
+		w.Head.Err = err.Error()
 		w.Head.State = -1
 	default:
 		w.Head.State = 0

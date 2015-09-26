@@ -7,11 +7,10 @@ import (
 
 type ResponseHead struct {
 	UserId    int64  `json:"userId"`
-	Uuid      string `json:"uuid"`
-	Msg       string `json:"msg"`
+	Err       string `json:"err"`
 	State     int    `json:"state"`
 	SessionId string `json:"sessionId"`
-	Addr      string `json:"addr"`
+	FaceCode  int    `json:"faceCode"`
 }
 type Response struct {
 	Head *ResponseHead `json:"head"`
