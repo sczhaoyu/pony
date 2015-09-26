@@ -21,7 +21,7 @@ func main() {
 	Client(conn)
 }
 
-var data []byte = []byte(`{"head":{"faceCode":1100,"userId":1976,"token":""}}`)
+var data []byte = []byte(`{"head":{"command":"100","userId":1976,"token":""}}`)
 
 func Client(conn net.Conn) {
 	for {

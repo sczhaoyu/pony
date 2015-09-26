@@ -54,9 +54,10 @@ func ReadData(conn net.Conn, length int) ([]byte, error) {
 	if l == 0 {
 		return nil, errors.New("data nil")
 	}
-	if l > length {
-		return nil, errors.New("data must  < " + fmt.Sprintf("%d", length))
+	if l > length || l <= 0 {
+		return nil, errors.New("data must  < " + fmt.Sprintf("%d", length) + "> 0 !")
 	}
+
 	data = make([]byte, l)
 	for l > 0 {
 		i, err := conn.Read(data)

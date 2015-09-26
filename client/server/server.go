@@ -47,7 +47,7 @@ func (s *Server) Start() {
 	}
 	log.Println("client server start success:", listen.Addr().String())
 	//启动逻辑服务器链接
-	lsm := NewLogicServerManager("127.0.0.1:8456")
+	lsm := NewLogicServerManager("127.0.0.1:8456", s)
 	s.LSM = lsm
 	go s.LSM.Start()
 	for {
@@ -79,6 +79,7 @@ func (s *Server) ReadData(session *session.Session) {
 				s.CloseConn(session)
 				return
 			}
+
 			//转发逻辑服务端链接
 			s.LSM.SendChan <- common.NewRequestJson(data, session.SESSIONID)
 
@@ -99,12 +100,12 @@ func (s *Server) CloseConn(si *session.Session) {
 //回应客户端数据
 func (s *Server) RSCSend() {
 	for {
-		data := <-s.LSM.RspChan
-		var r common.Request
-		r.Unmarshal(data)
+		r := <-s.LSM.RspChan
+
 		conn := s.Session.GetSession(r.Head.SessionId)
 		if conn != nil {
 			conn.Write(r.Body)
 		}
+
 	}
 }

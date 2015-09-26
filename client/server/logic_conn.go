@@ -9,14 +9,15 @@ import (
 )
 
 type LogicConn struct {
-	net.Conn                       //会话
-	State      bool                //链接状态
-	RC         chan int            //重置通道信号
-	ConnMutex  sync.Mutex          //数据发送锁
-	DataCh     chan []byte         //数据发送通道
-	Addr       string              //服务器链接地址 IP+Port格式
-	MaxDataLen int                 //最大接受数据长度
-	LSM        *LogicServerManager //逻辑服务管理者
+	net.Conn                         //会话
+	State        bool                //链接状态
+	RC           chan int            //重置通道信号
+	ConnMutex    sync.Mutex          //数据发送锁
+	DataCh       chan []byte         //数据发送通道
+	Addr         string              //服务器链接地址 IP+Port格式
+	MaxDataLen   int                 //最大接受数据长度
+	LSM          *LogicServerManager //逻辑服务管理者
+	ResetTimeOut int                 //超时重链接秒
 }
 
 //创建连接
@@ -28,6 +29,7 @@ func NewLogicConn(addr string, lsm *LogicServerManager) (*LogicConn, error) {
 
 		return nil, err
 	}
+	lc.ResetTimeOut = 2
 	lc.Conn = conn
 	lc.State = true
 	lc.MaxDataLen = 2048
@@ -53,8 +55,7 @@ func (lc *LogicConn) ReadData() {
 			lc.RC <- 0
 			break
 		}
-		log.Println(string(data))
-		lc.LSM.RspChan <- data
+		go handler(lc, data)
 	}
 }
 
@@ -81,10 +82,10 @@ func (lc *LogicConn) CheckClient() {
 			lc.Conn, err = lc.newConn(lc.Addr)
 			if err == nil {
 				lc.State = true
-				log.Println("roter server reset client success")
+				log.Println("logic server reset client success:", lc.Conn.RemoteAddr().String())
 				go lc.ReadData()
 			} else {
-				time.Sleep(time.Second * 5)
+				time.Sleep(time.Second * time.Duration(lc.ResetTimeOut))
 			}
 		}
 		lc.ConnMutex.Unlock()

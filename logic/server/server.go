@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/sczhaoyu/pony/common"
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
@@ -89,5 +90,24 @@ func (s *Server) sendMsg() {
 	for {
 		rsp := <-s.RspC
 		rsp.Out()
+	}
+}
+
+//全局广播
+func (s *Server) Radio(data []byte) {
+	for _, v := range s.Session.SCName {
+		for _, c := range v {
+			//通知前端的每台clientServer
+			var rsp common.Response
+			rsp.Head = new(common.ResponseHead)
+			rsp.Head.Command = common.RADIO
+			rsp.Body = data
+			var w Write
+			w.Conn = c
+			w.Body = rsp.GetJson()
+			log.Println("逻辑服务器广播：", string(w.Body))
+			s.Put(&w)
+			break
+		}
 	}
 }

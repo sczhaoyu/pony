@@ -12,13 +12,27 @@ type ResponseHead struct {
 }
 type Response struct {
 	Head *ResponseHead `json:"head"`
-	Body interface{}   `json:"body"`
+	Body []byte        `json:"body"`
 }
 
+func NewResponseSid(sessionId string, data []byte) *Response {
+	var r Response
+	r.Head = new(ResponseHead)
+	r.Head.SessionId = sessionId
+	r.Body = data
+	return &r
+}
+func (r *Response) GetJsonByte() []byte {
+	data, _ := json.Marshal(r)
+	return data
+}
 func (r *Response) GetJson() []byte {
 	data, err := json.Marshal(r)
 	if err != nil {
 		return nil
 	}
 	return util.ByteLen(data)
+}
+func (r *Response) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, &r)
 }

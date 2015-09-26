@@ -7,27 +7,28 @@ import (
 )
 
 type Manager struct {
-	session map[string]*Session
+	Session map[string]*Session
 	sm      sync.Mutex
 }
 
 func (m *Manager) Init() {
-	m.session = make(map[string]*Session)
+	m.Session = make(map[string]*Session)
 }
 func (m *Manager) GetSession(key string) *Session {
-	return m.session[key]
+	return m.Session[key]
 }
 func (m *Manager) SetSession(conn net.Conn) *Session {
 	m.sm.Lock()
 	var s Session
 	s.SESSIONID = util.GetUUID()
 	s.Conn = conn
-	m.session[s.SESSIONID] = &s
+	m.Session[s.SESSIONID] = &s
 	defer m.sm.Unlock()
 	return &s
 }
 func (m *Manager) Remove(s *Session) {
 	m.sm.Lock()
-	delete(m.session, s.SESSIONID)
+	s.Close()
+	delete(m.Session, s.SESSIONID)
 	m.sm.Unlock()
 }
