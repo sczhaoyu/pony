@@ -12,17 +12,17 @@ type ResponseHead struct {
 }
 type Response struct {
 	Head *ResponseHead `json:"head"`
-	Body []byte        `json:"body"`
+	Body interface{}   `json:"body"`
 }
 
-func AuthResponse(command string, data []byte) *Response {
+func AuthResponse(command string, data interface{}) *Response {
 	var r Response
 	r.Head = new(ResponseHead)
 	r.Head.Command = command
 	r.Body = data
 	return &r
 }
-func NewResponseSid(sessionId string, data []byte) *Response {
+func NewResponseSid(sessionId string, data interface{}) *Response {
 	var r Response
 	r.Head = new(ResponseHead)
 	r.Head.SessionId = sessionId

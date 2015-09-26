@@ -25,7 +25,7 @@ type Server struct {
 //创建服务
 func NewServer(port int) *Server {
 	s.Port = port
-	s.Ip = ""
+	s.Ip = "127.0.0.1"
 	s.MaxClient = 200
 	s.MaxPush = 50000
 	s.MaxDataLen = 2048
@@ -43,6 +43,14 @@ func (s *Server) Start() {
 		return
 	}
 	log.Println("logic server start success:", s.Port)
+	//启动后台管理服务器链接
+	a := common.NewAdminConn("127.0.0.1:2058")
+	//初始化发送信息
+	a.FirstSendAdmin = func() {
+		rsp := common.AuthResponse(common.LS, []byte(listen.Addr().String()))
+		a.DataCh <- rsp.GetJson()
+	}
+	a.Run()
 	//启动消息发送线程
 	go s.sendMsg()
 	for {

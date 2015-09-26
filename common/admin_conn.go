@@ -9,14 +9,15 @@ import (
 )
 
 type AdminConn struct {
-	net.Conn                 //会话
-	State        bool        //链接状态
-	RC           chan int    //重置通道信号
-	ConnMutex    sync.Mutex  //数据发送锁
-	DataCh       chan []byte //数据发送通道
-	Addr         string      //服务器链接地址 IP+Port格式
-	MaxDataLen   int         //最大接受数据长度
-	ResetTimeOut int         //超时重链接秒
+	net.Conn                   //会话
+	State          bool        //链接状态
+	RC             chan int    //重置通道信号
+	ConnMutex      sync.Mutex  //数据发送锁
+	DataCh         chan []byte //数据发送通道
+	Addr           string      //服务器链接地址 IP+Port格式
+	MaxDataLen     int         //最大接受数据长度
+	ResetTimeOut   int         //超时重链接秒
+	FirstSendAdmin func()      //初始化发送信息
 }
 
 //创建连接
@@ -51,6 +52,7 @@ func (a *AdminConn) Run() {
 
 //读取数据
 func (a *AdminConn) ReadData() {
+	go a.FirstSendAdmin()
 	for {
 		data, err := util.ReadData(a.Conn, a.MaxDataLen)
 		if err != nil {

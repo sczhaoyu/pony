@@ -48,6 +48,14 @@ func (s *Server) Start() {
 	log.Println("client server start success:", listen.Addr().String())
 	//启动后台管理服务器链接
 	a := common.NewAdminConn("127.0.0.1:2058")
+	a.FirstSendAdmin = func() {
+		//获取链接
+		rsp := common.AuthResponse(common.GETLS, []byte(" "))
+		//登记自己
+		lg := common.AuthResponse(common.CS, listen.Addr().String())
+		a.DataCh <- rsp.GetJson()
+		a.DataCh <- lg.GetJson()
+	}
 	a.Run()
 	//启动逻辑服务器链接
 	lsm := NewLogicServerManager("127.0.0.1:8456", s)
@@ -105,10 +113,9 @@ func (s *Server) CloseConn(si *session.Session) {
 func (s *Server) RSCSend() {
 	for {
 		r := <-s.LSM.RspChan
-
 		conn := s.Session.GetSession(r.Head.SessionId)
 		if conn != nil {
-			conn.Write(r.Body)
+			conn.Write(util.ByteLen(r.Body.([]byte)))
 		}
 
 	}

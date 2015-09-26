@@ -1,6 +1,7 @@
 package admin_server
 
 import (
+	"github.com/sczhaoyu/pony/common"
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
@@ -71,6 +72,7 @@ func (a *AdminServer) AddSession(c net.Conn, serType string) {
 	cs.ServerType = serType
 	cs.Conn = c
 	a.CS[cs.Addr] = &cs
+	log.Println("...", a.CS)
 	defer a.mutex.Unlock()
 }
 func (a *AdminServer) Close(conn net.Conn) {
@@ -78,4 +80,13 @@ func (a *AdminServer) Close(conn net.Conn) {
 	delete(a.CS, conn.RemoteAddr().String())
 	conn.Close()
 	defer a.mutex.Unlock()
+}
+func (a *AdminServer) GetLS() []string {
+	var ret []string = make([]string, 0, len(a.CS))
+	for _, v := range a.CS {
+		if v.ServerType == common.LS {
+			ret = append(ret, v.Addr)
+		}
+	}
+	return ret
 }
