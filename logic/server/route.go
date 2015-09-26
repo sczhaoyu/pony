@@ -8,6 +8,8 @@ import (
 var roter map[int]func(*Conn) = make(map[int]func(*Conn))
 
 func registerRoter() {
+	//用户绑定
+	roter[99] = bind
 	//用户注册
 	roter[100] = register
 }
