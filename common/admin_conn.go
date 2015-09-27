@@ -9,15 +9,16 @@ import (
 )
 
 type AdminConn struct {
-	net.Conn                   //会话
-	State          bool        //链接状态
-	RC             chan int    //重置通道信号
-	ConnMutex      sync.Mutex  //数据发送锁
-	DataCh         chan []byte //数据发送通道
-	Addr           string      //服务器链接地址 IP+Port格式
-	MaxDataLen     int         //最大接受数据长度
-	ResetTimeOut   int         //超时重链接秒
-	FirstSendAdmin func()      //初始化发送信息
+	net.Conn                       //会话
+	State          bool            //链接状态
+	RC             chan int        //重置通道信号
+	ConnMutex      sync.Mutex      //数据发送锁
+	DataCh         chan []byte     //数据发送通道
+	Addr           string          //服务器链接地址 IP+Port格式
+	MaxDataLen     int             //最大接受数据长度
+	ResetTimeOut   int             //超时重链接秒
+	FirstSendAdmin func()          //初始化发送信息
+	RspFunc        func(*Response) //回应处理函数
 }
 
 //创建连接
@@ -60,7 +61,11 @@ func (a *AdminConn) ReadData() {
 			a.RC <- 0
 			break
 		}
-		log.Println("admin报文:", string(data))
+		var rsp Response
+		rsp.Unmarshal(data)
+		if a.RspFunc != nil {
+			a.RspFunc(&rsp)
+		}
 	}
 }
 

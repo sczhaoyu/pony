@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/sczhaoyu/pony/common"
 	"github.com/sczhaoyu/pony/util"
+	"log"
 	"time"
 )
 
@@ -16,7 +17,7 @@ type LogicServerManager struct {
 
 func NewLogicServerManager(c *Server) *LogicServerManager {
 	var ls LogicServerManager
-	ls.MaxConn = 50
+	ls.MaxConn = 2
 	ls.ConnChan = make(chan *LogicConn, ls.MaxConn)
 	ls.SendChan = make(chan []byte, ls.MaxConn)
 	ls.RspChan = make(chan *common.Response, ls.MaxConn)
@@ -39,8 +40,9 @@ func (l *LogicServerManager) Start() {
 					conn.Start()
 					l.ConnChan <- conn
 				}
-				go l.SendLogic()
+
 			}
+			go l.SendLogic()
 		}
 
 	} else {
@@ -70,4 +72,23 @@ func (l *LogicServerManager) GetConn() *LogicConn {
 //放入链接
 func (l *LogicServerManager) ReturnConn(conn *LogicConn) {
 	l.ConnChan <- conn
+}
+
+//链接全部重链接
+func (l *LogicServerManager) ResetConnAll() {
+	var ret []*LogicConn = make([]*LogicConn, 0, len(l.ConnChan))
+	count := 0
+	for v := range l.ConnChan {
+		count = count + 1
+		ret = append(ret, v)
+		v.Close()
+		if count == len(l.ConnChan) {
+			break
+		}
+	}
+	for i := 0; i < len(ret); i++ {
+		l.ReturnConn(ret[i])
+	}
+	log.Println("logic server pool size: ", len(l.ConnChan))
+
 }
