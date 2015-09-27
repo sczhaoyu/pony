@@ -10,6 +10,13 @@ type LSAddr struct {
 	Num  int    `json:"num"`  //链接数量
 }
 
+func (l *LSAddr) Marshal() []byte {
+	data, _ := json.Marshal(l)
+	return data
+}
+func (l *LSAddr) Unmarshal(data []byte) {
+	json.Unmarshal(data, l)
+}
 func UnmarshalLSAddr(response []byte) []LSAddr {
 	sj, jerr := simplejson.NewJson(response)
 	if jerr != nil {

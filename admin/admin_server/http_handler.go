@@ -25,6 +25,8 @@ func (list LSAddrList) Swap(i, j int) {
 
 //获取逻辑服务器IP地址 返回链接最小的IP
 func getLogicAddr(w http.ResponseWriter, r *http.Request) {
+	admin.mutex.Lock()
+	defer admin.mutex.Unlock()
 	var ret []*common.LSAddr
 	//取出逻辑服务器IP比较
 	for _, v := range admin.CS {

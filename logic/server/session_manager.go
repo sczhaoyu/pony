@@ -18,6 +18,15 @@ func (s *SessionManager) Init() {
 	s.SCName = make(map[string]map[string]net.Conn)
 	s.SessionId = make(map[string]string)
 }
+func (s *SessionManager) GetLen() int {
+	count := 0
+	for _, v := range s.SCName {
+		for range v {
+			count = count + 1
+		}
+	}
+	return count
+}
 
 //根据sessionId获取session
 func (s *SessionManager) GetSessionId(sid string) net.Conn {

@@ -68,12 +68,13 @@ func (a *AdminServer) SendNotice(st string, data []byte) {
 	}
 }
 
-func (a *AdminServer) AddSession(c net.Conn, serType, addr string) {
+func (a *AdminServer) AddSession(c net.Conn, serType, addr string, num int) {
 	a.mutex.Lock()
 	var cs ClientSer
 	cs.Addr = addr
 	cs.ServerType = serType
 	cs.Conn = c
+	cs.ClientNum = num
 	a.CS[c.RemoteAddr().String()] = &cs
 	defer a.mutex.Unlock()
 }

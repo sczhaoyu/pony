@@ -87,8 +87,11 @@ func (s *Server) ConnectAdmin() {
 	s.AdminConn = common.NewAdminConn("127.0.0.1:2058")
 	//初始化发送信息
 	s.AdminConn.FirstSendAdmin = func() {
-		rsp := common.AuthResponse(common.LS, []byte(s.Listen.Addr().String()))
-		s.AdminConn.DataCh <- rsp.GetJson()
+		var la common.LSAddr
+		la.Addr = s.Listen.Addr().String()
+		la.Num = s.Session.GetLen()
+		req := common.AuthRequest(common.LS, la.Marshal())
+		s.AdminConn.DataCh <- req.GetJson()
 	}
 	s.AdminConn.Run()
 }

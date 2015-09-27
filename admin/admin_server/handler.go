@@ -2,7 +2,6 @@ package admin_server
 
 import (
 	"github.com/sczhaoyu/pony/common"
-	"log"
 	"net"
 )
 
@@ -18,15 +17,17 @@ func sutepRoter() {
 
 //登记逻辑服务器
 func regLS(a *AdminServer, conn net.Conn, r *common.Request) {
-	a.AddSession(conn, common.LS, string(r.Body))
+	var la common.LSAddr
+	la.Unmarshal(r.Body)
+	a.AddSession(conn, common.LS, la.Addr, la.Num)
 	//通知前端服务器有新的逻辑服务器加入
-	sp := common.AuthResponse(common.ADDLS, string(r.Body))
+	sp := common.AuthResponse(common.ADDLS, la)
 	a.SendNotice(common.CS, sp.GetJson())
 }
 
 //登记客户端链接服务器
 func regCS(a *AdminServer, conn net.Conn, r *common.Request) {
-	a.AddSession(conn, common.CS, string(r.Body))
+	a.AddSession(conn, common.CS, string(r.Body), 0)
 }
 
 //获取逻辑服务器组
