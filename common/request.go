@@ -6,14 +6,14 @@ import (
 )
 
 type RequestHeader struct {
-	SessionId string `json:"sessionId"`
-	Command   string `json:"command"`
-	Err       string `json:"err"`
+	SessionId string `json:"sessionId,omitempty"`
+	Command   string `json:"command,omitempty"`
+	Err       string `json:"err,omitempty"`
 }
 
 type Request struct {
-	Head *RequestHeader `json:"head"`
-	Body []byte         `json:"body"`
+	Head *RequestHeader `json:"head,omitempty"`
+	Body []byte         `json:"body,omitempty"`
 }
 
 func NewRequestJson(data []byte, sessionId string) []byte {

@@ -53,12 +53,12 @@ func (s *Server) Start() {
 		rsp := common.AuthResponse(common.GETLS, []byte(" "))
 		//登记自己
 		lg := common.AuthResponse(common.CS, listen.Addr().String())
-		a.DataCh <- rsp.GetJson()
 		a.DataCh <- lg.GetJson()
+		a.DataCh <- rsp.GetJson()
 	}
 	a.Run()
 	//启动逻辑服务器链接
-	lsm := NewLogicServerManager("127.0.0.1:8456", s)
+	lsm := NewLogicServerManager(s)
 	s.LSM = lsm
 	go s.LSM.Start()
 

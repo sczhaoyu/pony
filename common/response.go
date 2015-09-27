@@ -6,15 +6,29 @@ import (
 )
 
 type ResponseHead struct {
-	Err       string `json:"err"`
-	SessionId string `json:"sessionId"`
-	Command   string `json:"command"`
+	Err       string `json:"err,omitempty"`
+	SessionId string `json:"sessionId,omitempty"`
+	Command   string `json:"command,omitempty"`
+	Success   int    `json:"success"`
 }
 type Response struct {
-	Head *ResponseHead `json:"head"`
-	Body interface{}   `json:"body"`
+	Head *ResponseHead `json:"head,omitempty"`
+	Body interface{}   `json:"body,omitempty"`
 }
 
+func NewResponse(b interface{}) *Response {
+	var rsp Response
+	rsp.Head = new(ResponseHead)
+	switch err := b.(type) {
+	case error:
+		rsp.Head.Err = err.Error()
+		rsp.Head.Success = -1
+	default:
+		rsp.Head.Success = 1
+		rsp.Body = b
+	}
+	return &rsp
+}
 func AuthResponse(command string, data interface{}) *Response {
 	var r Response
 	r.Head = new(ResponseHead)

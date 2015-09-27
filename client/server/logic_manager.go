@@ -2,10 +2,11 @@ package server
 
 import (
 	"github.com/sczhaoyu/pony/common"
+	"github.com/sczhaoyu/pony/util"
+	"time"
 )
 
 type LogicServerManager struct {
-	Addr         string                //IP+Port格式
 	MaxConn      int                   //最大链接
 	ConnChan     chan *LogicConn       //链接通道
 	SendChan     chan []byte           //发送数据通道
@@ -13,9 +14,8 @@ type LogicServerManager struct {
 	ClientServer *Server               //客户端链接服务器
 }
 
-func NewLogicServerManager(addr string, c *Server) *LogicServerManager {
+func NewLogicServerManager(c *Server) *LogicServerManager {
 	var ls LogicServerManager
-	ls.Addr = addr
 	ls.MaxConn = 2
 	ls.ConnChan = make(chan *LogicConn, ls.MaxConn)
 	ls.SendChan = make(chan []byte, ls.MaxConn)
@@ -24,13 +24,31 @@ func NewLogicServerManager(addr string, c *Server) *LogicServerManager {
 	return &ls
 }
 func (l *LogicServerManager) Start() {
-	//初始化链接
-	for i := 0; i < l.MaxConn; i++ {
-		conn := NewLogicConn(l.Addr, l)
-		l.ConnChan <- conn
-		conn.Start()
+	data, err := util.HttpRequest("http://127.0.0.1:3869/logic/list", "post", nil, nil)
+	if err == nil {
+		ret := common.UnmarshalLSAddr(data)
+		if len(ret) == 0 {
+			time.AfterFunc(time.Second*2, func() {
+				l.Start()
+			})
+		} else {
+			for i := 0; i < len(ret); i++ {
+				//初始化链接
+				for j := 0; j < l.MaxConn; j++ {
+					conn := NewLogicConn(ret[i].Addr, l)
+					l.ConnChan <- conn
+					conn.Start()
+				}
+				go l.SendLogic()
+			}
+		}
+
+	} else {
+		time.AfterFunc(time.Second*2, func() {
+			l.Start()
+		})
 	}
-	go l.SendLogic()
+
 }
 
 //发送给已经链接的客户端

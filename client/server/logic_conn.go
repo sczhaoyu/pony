@@ -1,6 +1,8 @@
 package server
 
 import (
+	"errors"
+	"github.com/sczhaoyu/pony/common"
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
@@ -39,7 +41,7 @@ func (lc *LogicConn) Start() {
 			lc.State = false
 			lc.RC <- 0
 		} else {
-			log.Println("logic server success!")
+			log.Println("logic server success:", lc.Addr)
 			lc.Conn = conn
 			go lc.ReadData()
 		}
@@ -99,9 +101,18 @@ func (lc *LogicConn) CheckClient() {
 
 //创建一个链接
 func (lc *LogicConn) newConn(addr string) (net.Conn, error) {
-	conn, err := net.Dial("tcp", addr)
+	data, derr := util.HttpRequest("http://127.0.0.1:3869/logic", "post", nil, nil)
+	if derr != nil {
+		return nil, derr
+	}
+	ret := common.GetLSAddr(data)
+	if ret == nil {
+		return nil, errors.New("not fount server addr!")
+	}
+	conn, err := net.Dial("tcp", ret.Addr)
 	if err != nil {
 		return nil, err
 	}
+	lc.Addr = ret.Addr
 	return conn, err
 }

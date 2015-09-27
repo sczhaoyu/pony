@@ -15,13 +15,14 @@ type AdminServer struct {
 	mutex sync.Mutex            //session操作锁
 }
 
+var admin AdminServer
+
 //创建服务
 func NewAdminServer(port int) *AdminServer {
-	var a AdminServer
-	a.Port = port
-	a.Ip = "127.0.0.1"
-	a.CS = make(map[string]*ClientSer)
-	return &a
+	admin.Port = port
+	admin.Ip = "127.0.0.1"
+	admin.CS = make(map[string]*ClientSer)
+	return &admin
 }
 
 //启动管理服务器
@@ -32,6 +33,7 @@ func (a *AdminServer) Run() {
 		return
 	}
 	log.Println("admin server start success:", a.Port)
+	go HtppRun()
 	for {
 		conn, err := listen.AcceptTCP()
 		if err != nil {
@@ -41,6 +43,7 @@ func (a *AdminServer) Run() {
 		//读取数据
 		go a.ReadData(conn)
 	}
+
 }
 
 //读取客户端服务器过来的数据
@@ -65,14 +68,13 @@ func (a *AdminServer) SendNotice(st string, data []byte) {
 	}
 }
 
-func (a *AdminServer) AddSession(c net.Conn, serType string) {
+func (a *AdminServer) AddSession(c net.Conn, serType, addr string) {
 	a.mutex.Lock()
 	var cs ClientSer
-	cs.Addr = c.RemoteAddr().String()
+	cs.Addr = addr
 	cs.ServerType = serType
 	cs.Conn = c
-	a.CS[cs.Addr] = &cs
-	log.Println("...", a.CS)
+	a.CS[c.RemoteAddr().String()] = &cs
 	defer a.mutex.Unlock()
 }
 func (a *AdminServer) Close(conn net.Conn) {
