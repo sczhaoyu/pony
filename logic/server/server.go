@@ -12,14 +12,16 @@ var (
 )
 
 type Server struct {
-	Ip         string         //服务器IP
-	Port       int            //启动端口
-	MaxClient  int            //服务器最大链接
-	MCC        chan int       //链接处理通道
-	MaxPush    int            //推送消息最大处理数量
-	RspC       chan *Write    //推送消息数据通道
-	MaxDataLen int            //最大接受数据长度
-	Session    SessionManager //会话管理
+	Ip         string            //服务器IP
+	Port       int               //启动端口
+	MaxClient  int               //服务器最大链接
+	MCC        chan int          //链接处理通道
+	MaxPush    int               //推送消息最大处理数量
+	RspC       chan *Write       //推送消息数据通道
+	MaxDataLen int               //最大接受数据长度
+	Session    SessionManager    //会话管理
+	AdminConn  *common.AdminConn //总控制台
+	Listen     *net.TCPListener
 }
 
 //创建服务
@@ -38,19 +40,14 @@ func NewServer(port int) *Server {
 //启动服务
 func (s *Server) Start() {
 	listen, err := net.ListenTCP("tcp", &net.TCPAddr{net.ParseIP(s.Ip), s.Port, ""})
+	s.Listen = listen
 	if err != nil {
 		log.Println("logic server start error:", err.Error())
 		return
 	}
 	log.Println("logic server start success:", s.Port)
 	//启动后台管理服务器链接
-	a := common.NewAdminConn("127.0.0.1:2058")
-	//初始化发送信息
-	a.FirstSendAdmin = func() {
-		rsp := common.AuthResponse(common.LS, []byte(listen.Addr().String()))
-		a.DataCh <- rsp.GetJson()
-	}
-	a.Run()
+	s.ConnectAdmin()
 	//启动消息发送线程
 	go s.sendMsg()
 	for {
@@ -61,7 +58,9 @@ func (s *Server) Start() {
 			continue
 		}
 		s.MCC <- 1
-		//加入session
+		//加入session 通知admin
+		req := common.AuthRequest(common.ADDLSCONN, []byte(s.Listen.Addr().String()))
+		s.AdminConn.DataCh <- req.GetJson()
 		s.Session.SetSession(conn, "")
 		// //读取数据
 		go s.ReadData(conn)
@@ -82,10 +81,24 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 	}
 }
 
+//链接管理服务器
+func (s *Server) ConnectAdmin() {
+	//启动后台管理服务器链接
+	s.AdminConn = common.NewAdminConn("127.0.0.1:2058")
+	//初始化发送信息
+	s.AdminConn.FirstSendAdmin = func() {
+		rsp := common.AuthResponse(common.LS, []byte(s.Listen.Addr().String()))
+		s.AdminConn.DataCh <- rsp.GetJson()
+	}
+	s.AdminConn.Run()
+}
+
 //关闭链接,删除session
 func (s *Server) CloseConn(conn net.Conn) {
 	s.Session.RemoveAddrSession(conn.RemoteAddr().String())
 	<-s.MCC
+	//通知链接减去
+	s.AdminConn.DataCh <- common.AuthRequest(common.DELLSCONN, []byte(s.Listen.Addr().String())).GetJson()
 }
 
 //加入消息

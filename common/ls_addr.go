@@ -7,7 +7,7 @@ import (
 
 type LSAddr struct {
 	Addr string `json:"addr"` //链接的地址
-	Num  int    `json:"-"`    //链接数量
+	Num  int    `json:"num"`  //链接数量
 }
 
 func UnmarshalLSAddr(response []byte) []LSAddr {

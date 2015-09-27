@@ -47,7 +47,6 @@ func getLogicAddr(w http.ResponseWriter, r *http.Request) {
 }
 func getLogicLiost(w http.ResponseWriter, r *http.Request) {
 	var ret []*common.LSAddr = make([]*common.LSAddr, 0, len(admin.CS))
-	//取出逻辑服务器IP比较
 	for _, v := range admin.CS {
 		if v.ServerType == common.LS {
 			var l common.LSAddr

@@ -35,9 +35,9 @@ func (l *LogicServerManager) Start() {
 			for i := 0; i < len(ret); i++ {
 				//初始化链接
 				for j := 0; j < l.MaxConn; j++ {
-					conn := NewLogicConn(ret[i].Addr, l)
-					l.ConnChan <- conn
+					conn := NewLogicConn(l)
 					conn.Start()
+					l.ConnChan <- conn
 				}
 				go l.SendLogic()
 			}
@@ -55,7 +55,6 @@ func (l *LogicServerManager) Start() {
 func (l *LogicServerManager) SendLogic() {
 	for {
 		data := <-l.SendChan
-
 		conn := l.GetConn()
 		conn.DataCh <- data
 		l.ReturnConn(conn)

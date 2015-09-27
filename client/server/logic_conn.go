@@ -23,9 +23,8 @@ type LogicConn struct {
 }
 
 //创建连接
-func NewLogicConn(addr string, lsm *LogicServerManager) *LogicConn {
+func NewLogicConn(lsm *LogicServerManager) *LogicConn {
 	var lc LogicConn
-	lc.Addr = addr
 	lc.ResetTimeOut = 2
 	lc.State = true
 	lc.MaxDataLen = 2048
@@ -36,7 +35,7 @@ func NewLogicConn(addr string, lsm *LogicServerManager) *LogicConn {
 }
 func (lc *LogicConn) Start() {
 	go func() {
-		conn, err := lc.newConn(lc.Addr)
+		conn, err := lc.newConn()
 		if err != nil {
 			lc.State = false
 			lc.RC <- 0
@@ -86,7 +85,7 @@ func (lc *LogicConn) CheckClient() {
 				lc.Conn.Close()
 			}
 			var err error
-			lc.Conn, err = lc.newConn(lc.Addr)
+			lc.Conn, err = lc.newConn()
 			if err == nil {
 				lc.State = true
 				log.Println("logic server reset client success:", lc.Conn.RemoteAddr().String())
@@ -100,7 +99,7 @@ func (lc *LogicConn) CheckClient() {
 }
 
 //创建一个链接
-func (lc *LogicConn) newConn(addr string) (net.Conn, error) {
+func (lc *LogicConn) newConn() (net.Conn, error) {
 	data, derr := util.HttpRequest("http://127.0.0.1:3869/logic", "post", nil, nil)
 	if derr != nil {
 		return nil, derr

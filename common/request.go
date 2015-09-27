@@ -26,3 +26,17 @@ func NewRequestJson(data []byte, sessionId string) []byte {
 func (r *Request) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, &r)
 }
+func AuthRequest(command string, data []byte) *Request {
+	var r Request
+	r.Head = new(RequestHeader)
+	r.Head.Command = command
+	r.Body = data
+	return &r
+}
+func (r *Request) GetJson() []byte {
+	data, err := json.Marshal(r)
+	if err != nil {
+		return nil
+	}
+	return util.ByteLen(data)
+}
