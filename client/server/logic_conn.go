@@ -26,7 +26,6 @@ type LogicConn struct {
 func NewLogicConn(lsm *LogicServerManager) *LogicConn {
 	var lc LogicConn
 	lc.ResetTimeOut = 2
-	lc.State = true
 	lc.MaxDataLen = 2048
 	lc.RC = make(chan int, 1)
 	lc.DataCh = make(chan []byte, 100)

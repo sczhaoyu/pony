@@ -17,7 +17,7 @@ func main() {
 	ReadFunc = func(c *Conn) {
 		log.Println("body：", string(c.Request.Body))
 	}
-	s := NewServer(3857)
+	s := NewServer(3389)
 	go func() {
 		time.Sleep(time.Second * 10)
 		s.Radio([]byte("广播"))

@@ -45,7 +45,13 @@ func getLogicAddr(w http.ResponseWriter, r *http.Request) {
 	//排序
 	list := LSAddrList(ret)
 	sort.Sort(list)
-	w.Write(common.NewResponse(list[0:1]).GetJsonByte())
+	tmp := list[0:1]
+	for _, v := range admin.CS {
+		if v.Addr == tmp[0].Addr {
+			v.ClientNum = v.ClientNum + 1
+		}
+	}
+	w.Write(common.NewResponse(tmp).GetJsonByte())
 }
 func getLogicLiost(w http.ResponseWriter, r *http.Request) {
 	var ret []*common.LSAddr = make([]*common.LSAddr, 0, len(admin.CS))

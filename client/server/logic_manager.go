@@ -17,7 +17,7 @@ type LogicServerManager struct {
 
 func NewLogicServerManager(c *Server) *LogicServerManager {
 	var ls LogicServerManager
-	ls.MaxConn = 2
+	ls.MaxConn = 500
 	ls.ConnChan = make(chan *LogicConn, ls.MaxConn)
 	ls.SendChan = make(chan []byte, ls.MaxConn)
 	ls.RspChan = make(chan *common.Response, ls.MaxConn)
@@ -33,14 +33,10 @@ func (l *LogicServerManager) Start() {
 				l.Start()
 			})
 		} else {
-			for i := 0; i < len(ret); i++ {
-				//初始化链接
-				for j := 0; j < l.MaxConn; j++ {
-					conn := NewLogicConn(l)
-					conn.Start()
-					l.ConnChan <- conn
-				}
-
+			for j := 0; j < l.MaxConn; j++ {
+				conn := NewLogicConn(l)
+				conn.Start()
+				l.ConnChan <- conn
 			}
 			go l.SendLogic()
 		}
@@ -81,7 +77,9 @@ func (l *LogicServerManager) ResetConnAll() {
 	for v := range l.ConnChan {
 		count = count + 1
 		ret = append(ret, v)
-		v.Close()
+		if v.Conn != nil {
+			v.Close()
+		}
 		if count == len(l.ConnChan) {
 			break
 		}

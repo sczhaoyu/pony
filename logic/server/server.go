@@ -28,7 +28,7 @@ type Server struct {
 func NewServer(port int) *Server {
 	s.Port = port
 	s.Ip = "127.0.0.1"
-	s.MaxClient = 200
+	s.MaxClient = 500
 	s.MaxPush = 50000
 	s.MaxDataLen = 2048
 	s.RspC = make(chan *Write, s.MaxPush)
@@ -59,8 +59,7 @@ func (s *Server) Start() {
 		}
 		s.MCC <- 1
 		//加入session 通知admin
-		req := common.AuthRequest(common.ADDLSCONN, []byte(s.Listen.Addr().String()))
-		s.AdminConn.DataCh <- req.GetJson()
+		s.NoticeAdmin()
 		s.Session.SetSession(conn, "")
 		// //读取数据
 		go s.ReadData(conn)
@@ -79,6 +78,15 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 		//进入处理
 		go handler(NewConn(conn, s), data)
 	}
+}
+
+//通知管理服务器有新的session
+func (s *Server) NoticeAdmin() {
+	var la common.LSAddr
+	la.Addr = s.Listen.Addr().String()
+	la.Num = s.Session.GetLen()
+	req := common.AuthRequest(common.ADDLSCONN, la.Marshal())
+	s.AdminConn.DataCh <- req.GetJson()
 }
 
 //链接管理服务器
