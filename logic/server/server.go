@@ -131,7 +131,7 @@ func (s *Server) sendMsg() {
 }
 
 //全局广播
-func (s *Server) Radio(data []byte) {
+func (s *Server) Radio(data interface{}) {
 	for _, v := range s.Session.SCName {
 		for _, c := range v {
 			//通知前端的每台clientServer
@@ -142,6 +142,7 @@ func (s *Server) Radio(data []byte) {
 			var w Write
 			w.Conn = c
 			w.Body = rsp.GetJson()
+			log.Println(string(rsp.GetJson()))
 			s.Put(&w)
 			break
 		}

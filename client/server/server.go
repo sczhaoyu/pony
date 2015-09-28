@@ -128,10 +128,10 @@ func (s *Server) CloseConn(si *session.Session) {
 //回应客户端数据
 func (s *Server) RSCSend() {
 	for {
-		r := <-s.LSM.RspChan
-		conn := s.Session.GetSession(r.Head.SessionId)
+		rsp := <-s.LSM.RspChan
+		conn := s.Session.GetSession(rsp.SessionId)
 		if conn != nil {
-			conn.Write(util.ByteLen(r.Body.([]byte)))
+			conn.Write(rsp.Data)
 		}
 
 	}

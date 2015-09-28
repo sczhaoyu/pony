@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	addr = "127.0.0.1:8555"
+	addr = "127.0.0.1:1587"
 )
 
 func main() {

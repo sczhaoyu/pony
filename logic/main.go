@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/sczhaoyu/pony/common"
 	. "github.com/sczhaoyu/pony/logic/server"
 	"log"
 	"runtime"
@@ -20,7 +21,10 @@ func main() {
 	s := NewServer(9862)
 	go func() {
 		time.Sleep(time.Second * 10)
-		s.Radio([]byte("广播"))
+		var l common.LSAddr
+		l.Addr = "12222.000,00"
+		l.Num = 17666
+		s.Radio(&l)
 	}()
 	s.Start()
 }

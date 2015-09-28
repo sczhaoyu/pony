@@ -11,6 +11,11 @@ type ResponseHead struct {
 	Command   string `json:"command,omitempty"`
 	Success   int    `json:"success"`
 }
+
+func (h *ResponseHead) Unmarshal(data []byte) error {
+	return json.Unmarshal(data, &h)
+}
+
 type Response struct {
 	Head *ResponseHead `json:"head,omitempty"`
 	Body interface{}   `json:"body,omitempty"`
