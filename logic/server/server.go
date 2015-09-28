@@ -142,7 +142,6 @@ func (s *Server) Radio(data interface{}) {
 			var w Write
 			w.Conn = c
 			w.Body = rsp.GetJson()
-			log.Println(string(rsp.GetJson()))
 			s.Put(&w)
 			break
 		}

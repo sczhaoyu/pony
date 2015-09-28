@@ -3,7 +3,6 @@ package server
 import (
 	simplejson "github.com/bitly/go-simplejson"
 	"github.com/sczhaoyu/pony/common"
-	"log"
 )
 
 func handler(lc *LogicConn, data []byte) {
@@ -21,7 +20,6 @@ func handler(lc *LogicConn, data []byte) {
 	if br == nil {
 		body = b
 	}
-	log.Println(string(b))
 	switch head.Command {
 	case common.RADIO:
 		s := lc.LSM.ClientServer.Session.Session
