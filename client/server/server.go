@@ -131,7 +131,7 @@ func (s *Server) RSCSend() {
 		rsp := <-s.LSM.RspChan
 		conn := s.Session.GetSession(rsp.SessionId)
 		if conn != nil {
-			conn.Write(rsp.Data)
+			conn.Write(util.ByteLen(rsp.Data))
 		}
 
 	}
