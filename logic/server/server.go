@@ -109,7 +109,11 @@ func (s *Server) CloseConn(conn net.Conn) {
 	s.Session.RemoveAddrSession(conn.RemoteAddr().String())
 	<-s.MCC
 	//通知链接减去
-	s.AdminConn.DataCh <- common.AuthRequest(common.DELLSCONN, []byte(s.Listen.Addr().String())).GetJson()
+	var la common.LSAddr
+	la.Addr = s.Listen.Addr().String()
+	la.Num = s.Session.GetLen()
+	req := common.AuthRequest(common.DELLSCONN, la.Marshal())
+	s.AdminConn.DataCh <- req.GetJson()
 }
 
 //加入消息
