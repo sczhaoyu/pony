@@ -66,8 +66,9 @@ func (s *Server) Start() {
 
 //读取客户端服务器过来的数据
 func (s *Server) ReadData(conn *net.TCPConn) {
-	//加入session 通知admin
+	//加入session
 	s.Session.SetSession(conn, "")
+	//通知admin
 	s.NoticeAdmin()
 	for {
 		data, err := util.ReadData(conn, s.MaxDataLen)
@@ -141,7 +142,6 @@ func (s *Server) Radio(data []byte) {
 			var w Write
 			w.Conn = c
 			w.Body = rsp.GetJson()
-			log.Println("逻辑服务器广播：", string(w.Body))
 			s.Put(&w)
 			break
 		}

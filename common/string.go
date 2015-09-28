@@ -10,3 +10,8 @@ const (
 	ADDLSCONN = "ADDLSCONN" //逻辑服务链接加入
 	DELLSCONN = "DELLSCONN" //逻辑服务器链接退出
 )
+
+const (
+	LOGICCLIENT = "LOGICCLIENT" //通知逻辑服务链接归属于那一台服务器
+
+)

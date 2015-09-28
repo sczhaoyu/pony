@@ -14,7 +14,7 @@ type LogicServerManager struct {
 
 func NewLogicServerManager(c *Server) *LogicServerManager {
 	var ls LogicServerManager
-	ls.MaxConn = 500
+	ls.MaxConn = 2
 	ls.ConnChan = make(chan *LogicConn, ls.MaxConn)
 	ls.SendChan = make(chan []byte, ls.MaxConn)
 	ls.RspChan = make(chan *common.Response, ls.MaxConn)
@@ -23,7 +23,7 @@ func NewLogicServerManager(c *Server) *LogicServerManager {
 }
 func (l *LogicServerManager) Start() {
 	for j := 0; j < l.MaxConn; j++ {
-		conn := NewLogicConn(l)
+		conn := NewLogicConn(l, l.ClientServer)
 		conn.Start()
 		l.ConnChan <- conn
 	}

@@ -20,16 +20,18 @@ type LogicConn struct {
 	MaxDataLen   int                 //最大接受数据长度
 	LSM          *LogicServerManager //逻辑服务管理者
 	ResetTimeOut int                 //超时重链接秒
+	ClientServer *Server             //所属服务器
 }
 
 //创建连接
-func NewLogicConn(lsm *LogicServerManager) *LogicConn {
+func NewLogicConn(lsm *LogicServerManager, cls *Server) *LogicConn {
 	var lc LogicConn
 	lc.ResetTimeOut = 2
 	lc.MaxDataLen = 2048
 	lc.RC = make(chan int, 1)
 	lc.DataCh = make(chan []byte, 100)
 	lc.LSM = lsm
+	lc.ClientServer = cls
 	return &lc
 }
 func (lc *LogicConn) Start() {
@@ -51,8 +53,15 @@ func (lc *LogicConn) Start() {
 
 }
 
+//第一次发送数据，告诉服务器自己属于那一台客户端服务器
+func (lc *LogicConn) FirstSend() {
+	req := common.AuthRequest(common.LOGICCLIENT, []byte(lc.ClientServer.Listen.Addr().String()))
+	lc.DataCh <- req.GetJson()
+}
+
 //读取数据
 func (lc *LogicConn) ReadData() {
+	lc.FirstSend()
 	for {
 		data, err := util.ReadData(lc.Conn, lc.MaxDataLen)
 		if err != nil {

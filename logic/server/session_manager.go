@@ -49,11 +49,10 @@ func (s *SessionManager) SetSession(c net.Conn, scName string) {
 	switch conn := c.(type) {
 	case *Conn:
 		//查看临时会话中是否存在如果存在移除
-		if sc[conn.RemoteAddr().String()] != nil {
-			delete(sc, conn.RemoteAddr().String())
+		if s.SCName[""] != nil {
+			delete(s.SCName[""], conn.RemoteAddr().String())
 		}
 		sc[conn.RemoteAddr().String()] = conn
-		s.SessionId[conn.Head.SessionId] = scName
 	default:
 		sc[c.RemoteAddr().String()] = c
 	}
