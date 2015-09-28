@@ -38,15 +38,14 @@ func getLS(a *AdminServer, conn net.Conn, r *common.Request) {
 
 //添加逻辑服务器session
 func addLogicConn(a *AdminServer, conn net.Conn, r *common.Request) {
-	// a.mutex.Lock()
-	// s := a.CS[conn.RemoteAddr().String()]
-	// if s != nil {
-	// 	var ls common.LSAddr
-	// 	ls.Unmarshal(r.Body)
-	// 	s.ClientNum = ls.Num
-	// }
-	// defer a.mutex.Unlock()
-
+	a.mutex.Lock()
+	s := a.CS[conn.RemoteAddr().String()]
+	if s != nil {
+		var ls common.LSAddr
+		ls.Unmarshal(r.Body)
+		s.ClientNum = ls.Num
+	}
+	defer a.mutex.Unlock()
 }
 
 //删除逻辑服务器session

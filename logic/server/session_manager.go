@@ -21,9 +21,7 @@ func (s *SessionManager) Init() {
 func (s *SessionManager) GetLen() int {
 	count := 0
 	for _, v := range s.SCName {
-		for range v {
-			count = count + 1
-		}
+		count = count + len(v)
 	}
 	return count
 }

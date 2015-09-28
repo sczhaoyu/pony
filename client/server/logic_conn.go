@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/sczhaoyu/pony/common"
 	"github.com/sczhaoyu/pony/util"
-	"log"
+	// "log"
 	"net"
 	"sync"
 	"time"
@@ -39,7 +39,7 @@ func (lc *LogicConn) Start() {
 			lc.State = false
 			lc.RC <- 0
 		} else {
-			log.Println("logic server success:", lc.Addr)
+			// log.Println("logic server success:", lc.Addr)
 			lc.Conn = conn
 			go lc.ReadData()
 		}
@@ -87,7 +87,7 @@ func (lc *LogicConn) CheckClient() {
 			lc.Conn, err = lc.newConn()
 			if err == nil {
 				lc.State = true
-				log.Println("logic server reset client success:", lc.Conn.RemoteAddr().String())
+				// log.Println("logic server reset client success:", lc.Conn.RemoteAddr().String())
 				go lc.ReadData()
 			} else {
 				time.Sleep(time.Second * time.Duration(lc.ResetTimeOut))

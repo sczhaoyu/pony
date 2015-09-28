@@ -28,7 +28,7 @@ type Server struct {
 func NewServer(port int) *Server {
 	s.Port = port
 	s.Ip = "127.0.0.1"
-	s.MaxClient = 500
+	s.MaxClient = 600
 	s.MaxPush = 50000
 	s.MaxDataLen = 2048
 	s.RspC = make(chan *Write, s.MaxPush)
@@ -58,9 +58,6 @@ func (s *Server) Start() {
 			continue
 		}
 		s.MCC <- 1
-		//加入session 通知admin
-		s.NoticeAdmin()
-		s.Session.SetSession(conn, "")
 		// //读取数据
 		go s.ReadData(conn)
 	}
@@ -69,6 +66,9 @@ func (s *Server) Start() {
 
 //读取客户端服务器过来的数据
 func (s *Server) ReadData(conn *net.TCPConn) {
+	//加入session 通知admin
+	s.Session.SetSession(conn, "")
+	s.NoticeAdmin()
 	for {
 		data, err := util.ReadData(conn, s.MaxDataLen)
 		if err != nil {

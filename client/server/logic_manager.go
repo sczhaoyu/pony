@@ -2,9 +2,6 @@ package server
 
 import (
 	"github.com/sczhaoyu/pony/common"
-	"github.com/sczhaoyu/pony/util"
-	"log"
-	"time"
 )
 
 type LogicServerManager struct {
@@ -25,27 +22,12 @@ func NewLogicServerManager(c *Server) *LogicServerManager {
 	return &ls
 }
 func (l *LogicServerManager) Start() {
-	data, err := util.HttpRequest("http://127.0.0.1:3869/logic/list", "post", nil, nil)
-	if err == nil {
-		ret := common.UnmarshalLSAddr(data)
-		if len(ret) == 0 {
-			time.AfterFunc(time.Second*2, func() {
-				l.Start()
-			})
-		} else {
-			for j := 0; j < l.MaxConn; j++ {
-				conn := NewLogicConn(l)
-				conn.Start()
-				l.ConnChan <- conn
-			}
-			go l.SendLogic()
-		}
-
-	} else {
-		time.AfterFunc(time.Second*2, func() {
-			l.Start()
-		})
+	for j := 0; j < l.MaxConn; j++ {
+		conn := NewLogicConn(l)
+		conn.Start()
+		l.ConnChan <- conn
 	}
+	go l.SendLogic()
 
 }
 
@@ -73,20 +55,16 @@ func (l *LogicServerManager) ReturnConn(conn *LogicConn) {
 //链接全部重链接
 func (l *LogicServerManager) ResetConnAll() {
 	var ret []*LogicConn = make([]*LogicConn, 0, len(l.ConnChan))
-	count := 0
 	for v := range l.ConnChan {
-		count = count + 1
 		ret = append(ret, v)
-		if v.Conn != nil {
-			v.Close()
-		}
-		if count == len(l.ConnChan) {
+		if len(ret) == len(l.ConnChan) {
 			break
 		}
 	}
 	for i := 0; i < len(ret); i++ {
+		if ret[i].Conn != nil {
+			ret[i].Conn.Close()
+		}
 		l.ReturnConn(ret[i])
 	}
-	log.Println("logic server pool size: ", len(l.ConnChan))
-
 }
