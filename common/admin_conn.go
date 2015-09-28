@@ -19,6 +19,7 @@ type AdminConn struct {
 	ResetTimeOut   int             //超时重链接秒
 	FirstSendAdmin func()          //初始化发送信息
 	RspFunc        func(*Response) //回应处理函数
+	InitSendFunc   func()          //初始化发送
 }
 
 //创建连接
@@ -26,11 +27,19 @@ func NewAdminConn(addr string) *AdminConn {
 	var a AdminConn
 	a.Addr = addr
 	a.ResetTimeOut = 2
-	a.State = true
 	a.MaxDataLen = 2048
 	a.RC = make(chan int, 1)
 	a.DataCh = make(chan []byte, 100)
 	return &a
+}
+func (a *AdminConn) initFistSend() {
+	if a.InitSendFunc != nil {
+		for a.State == false {
+			time.Sleep(time.Second * 1)
+			log.Println("a.InitSendFunc != nil")
+		}
+		a.InitSendFunc()
+	}
 }
 func (a *AdminConn) Run() {
 	go func() {
@@ -41,6 +50,7 @@ func (a *AdminConn) Run() {
 		} else {
 			log.Println("admin server success!")
 			a.Conn = conn
+			a.State = true
 			go a.ReadData()
 		}
 
@@ -48,7 +58,7 @@ func (a *AdminConn) Run() {
 	//状态监测
 	go a.CheckClient()
 	go a.SendData()
-
+	go a.initFistSend()
 }
 
 //读取数据

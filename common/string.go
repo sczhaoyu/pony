@@ -9,6 +9,7 @@ const (
 	GETLS     = "GETLS"     //获取逻辑服务器
 	ADDLSCONN = "ADDLSCONN" //逻辑服务链接加入
 	DELLSCONN = "DELLSCONN" //逻辑服务器链接退出
+	REGLOGIC  = "REGLOGIC"  //逻辑服务器注册请求
 )
 
 const (

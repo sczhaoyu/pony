@@ -38,3 +38,10 @@ func GetLSAddr(response []byte) *LSAddr {
 	}
 	return &ret[0]
 }
+func AutoLSAddrReq(command, addr string, num int) *Request {
+	var la LSAddr
+	la.Addr = addr
+	la.Num = num
+	req := AuthRequest(command, la.Marshal())
+	return req
+}

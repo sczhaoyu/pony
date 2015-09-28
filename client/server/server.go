@@ -72,12 +72,9 @@ func (s *Server) AdminConnRun() {
 	//启动后台管理服务器链接
 	a := common.NewAdminConn("127.0.0.1:2058")
 	a.FirstSendAdmin = func() {
-		//获取链接
-		rsp := common.AuthResponse(common.GETLS, []byte(" "))
 		//登记自己
 		lg := common.AuthResponse(common.CS, s.Listen.Addr().String())
 		a.DataCh <- lg.GetJson()
-		a.DataCh <- rsp.GetJson()
 	}
 	a.RspFunc = s.AdminRsp
 	a.Run()
@@ -86,7 +83,6 @@ func (s *Server) AdminConnRun() {
 //收到通知让全部链接重连
 func (s *Server) AdminRsp(rsp *common.Response) {
 	if rsp.Head.Command == common.ADDLS {
-		log.Println("loading reset logic server client .......")
 		s.LSM.ResetConnAll()
 		log.Println("loading reset logic server client success!")
 	}

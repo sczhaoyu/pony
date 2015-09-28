@@ -68,8 +68,8 @@ func (s *Server) Start() {
 func (s *Server) ReadData(conn *net.TCPConn) {
 	//加入session
 	s.Session.SetSession(conn, "")
-	//通知admin
-	s.NoticeAdmin()
+	// //通知admin
+	// s.NoticeAdmin()
 	for {
 		data, err := util.ReadData(conn, s.MaxDataLen)
 		if err != nil {
@@ -81,14 +81,14 @@ func (s *Server) ReadData(conn *net.TCPConn) {
 	}
 }
 
-//通知管理服务器有新的session
-func (s *Server) NoticeAdmin() {
-	var la common.LSAddr
-	la.Addr = s.Listen.Addr().String()
-	la.Num = s.Session.GetLen()
-	req := common.AuthRequest(common.ADDLSCONN, la.Marshal())
-	s.AdminConn.DataCh <- req.GetJson()
-}
+// //通知管理服务器有新的session
+// func (s *Server) NoticeAdmin() {
+// 	var la common.LSAddr
+// 	la.Addr = s.Listen.Addr().String()
+// 	la.Num = s.Session.GetLen()
+// 	req := common.AuthRequest(common.ADDLSCONN, la.Marshal())
+// 	s.AdminConn.DataCh <- req.GetJson()
+// }
 
 //链接管理服务器
 func (s *Server) ConnectAdmin() {
@@ -96,11 +96,13 @@ func (s *Server) ConnectAdmin() {
 	s.AdminConn = common.NewAdminConn("127.0.0.1:2058")
 	//初始化发送信息
 	s.AdminConn.FirstSendAdmin = func() {
-		var la common.LSAddr
-		la.Addr = s.Listen.Addr().String()
-		la.Num = s.Session.GetLen()
-		req := common.AuthRequest(common.LS, la.Marshal())
+		req := common.AutoLSAddrReq(common.LS, s.Listen.Addr().String(), s.Session.GetLen())
 		s.AdminConn.DataCh <- req.GetJson()
+	}
+	s.AdminConn.InitSendFunc = func() {
+		req := common.AutoLSAddrReq(common.ADDLS, s.Listen.Addr().String(), s.Session.GetLen())
+		s.AdminConn.DataCh <- req.GetJson()
+
 	}
 	s.AdminConn.Run()
 }
