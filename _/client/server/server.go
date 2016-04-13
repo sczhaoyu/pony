@@ -25,7 +25,7 @@ type Server struct {
 	Listen         *net.TCPListener
 }
 
-//创建服务
+//创建服务客户端连接服务器
 func NewServer(port int) *Server {
 	var s Server
 	s.Port = port

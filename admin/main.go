@@ -1,9 +1,12 @@
 package main
 
 import (
-	admin "github.com/sczhaoyu/pony/admin/admin_server"
+	. "github.com/sczhaoyu/pony/admin/srv"
+	"runtime"
 )
 
+//该模块主要管理全部模块
 func main() {
-	admin.NewAdminServer(2058).Run()
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	Run()
 }

@@ -36,7 +36,7 @@ func (a *AdminConn) initFistSend() {
 	if a.InitSendFunc != nil {
 		for a.State == false {
 			time.Sleep(time.Second * 1)
-			log.Println("a.InitSendFunc != nil")
+			log.Println("admin server no start  loading...")
 		}
 		a.InitSendFunc()
 	}

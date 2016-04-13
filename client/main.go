@@ -1,12 +1,15 @@
 package main
 
 import (
-	. "github.com/sczhaoyu/pony/client/server"
+	. "github.com/sczhaoyu/pony/client/srv"
 	"runtime"
 )
 
+//该模块主要管理管理客户端链接
 func main() {
-	runtime.SetCPUProfileRate(runtime.NumCPU())
-	NewServer(1587).Start()
+	var c ClientServer
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	c.RunCustomerServer()
+	c.RunSrv()
 
 }
