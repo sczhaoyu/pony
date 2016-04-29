@@ -56,7 +56,7 @@ func (c *CustomerServer) Unmarshal(b interface{}) error {
 
 //循环发送心跳
 func (c *CustomerServer) heartbeat() {
-	t := time.NewTicker(time.Duration(c.HeartbeatTime * time.Second))
+	t := time.NewTicker(time.Duration(c.HeartbeatTime) * time.Second)
 	defer t.Stop()
 	for {
 		select {
@@ -106,7 +106,9 @@ func (c *CustomerServer) WriteJson(b interface{}, faceCode int) {
 		c.DPM.AddPkg(req.Header.RequestId, c.RemoteAddr().String(), "", d)
 	}
 	//写入通道
-	c.DataChan <- d
+	if c.State {
+		c.DataChan <- d
+	}
 
 }
 
