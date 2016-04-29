@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -22,25 +23,37 @@ type DataPkgManager struct {
 	SendTime    time.Duration       //数据包重新发送时间
 	ReceiveMsgs map[string]bool     //确定收到的包
 	CH          chan *DataPkg       //数据写出通道(需要重新发包)
+	CloseCH     chan int            //关闭
 }
 
 //重置发送数据包
 func (d *DataPkgManager) ResetSend() {
-	d.Mx.Lock()
-	for k, v := range d.Pkgs {
-		//没有确认的消息包
-		if v.State == false {
-			//检测时间，是否重新推送
-			if (v.At + int64(d.SendTime)) < time.Now().Local().Unix() {
-				//写入通道，重新推送
-				delete(d.Pkgs, k)
-				//确定该对象被接收才能解锁
-				d.CH <- v
+	t := time.NewTicker(d.SendTime * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			d.Mx.Lock()
+			for k, v := range d.Pkgs {
+				//没有确认的消息包
+				if v.State == false {
+					//检测时间，是否重新推送
+					if (v.At + int64(d.SendTime)) < time.Now().Local().Unix() {
+						//写入通道，重新推送
+						delete(d.Pkgs, k)
+						//确定该对象被接收才能解锁
+						d.CH <- v
+					}
+				}
 			}
+			d.Mx.Unlock()
+		case <-d.CloseCH:
+			log.Println("数据包管理重发线程退出!")
+			close(d.CH)
+			return
 		}
 	}
-	d.Mx.Unlock()
-	time.AfterFunc(d.SendTime*time.Second, func() { d.ResetSend() })
+
 }
 
 //检测收到的包,如果收到该包返回true
@@ -91,6 +104,7 @@ func NewDataPkgManager(GCTime, SendTime time.Duration) *DataPkgManager {
 	dpm.SendTime = SendTime
 	dpm.Pkgs = make(map[string]*DataPkg, 0)
 	dpm.CH = make(chan *DataPkg)
+	dpm.CloseCH = make(chan int, 1)
 	dpm.ReceiveMsgs = make(map[string]bool, 0)
 	//启动GC
 	go dpm.GC()
@@ -101,13 +115,22 @@ func NewDataPkgManager(GCTime, SendTime time.Duration) *DataPkgManager {
 
 //垃圾数据回收
 func (d *DataPkgManager) GC() {
-	d.Mx.Lock()
-	for k, v := range d.Pkgs {
-		if v.State {
-			delete(d.Pkgs, k)
+	t := time.NewTicker(d.GCTime * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			d.Mx.Lock()
+			for k, v := range d.Pkgs {
+				if v.State {
+					delete(d.Pkgs, k)
+				}
+			}
+			d.Mx.Unlock()
+		case <-d.CloseCH:
+			log.Println("数据包管理GC线程已退出!")
+			return
 		}
 	}
-	d.Mx.Unlock()
-	time.AfterFunc(d.GCTime*time.Second, func() { d.GC() })
 
 }

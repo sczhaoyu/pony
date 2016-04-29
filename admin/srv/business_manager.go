@@ -2,9 +2,9 @@ package srv
 
 import (
 	"errors"
+	"fmt"
 	. "github.com/sczhaoyu/pony/config"
 	. "github.com/sczhaoyu/pony/server"
-	"log"
 )
 
 type Srv struct {
@@ -55,11 +55,8 @@ func noticeSrvCS(b interface{}, srvType, faceCode int) {
 	ret := Admin.Server.MemProvider.SessionStoreAll()
 	for i := 0; i < len(ret); i++ {
 		v := ret[i].Get(SERVER_TYPE_KEY)
-
 		if v != nil {
-
 			if v.(*Srv).SrvType == srvType {
-
 				ret[i].Notice(b, faceCode)
 			}
 		}
@@ -80,7 +77,9 @@ func ok(c *Conn) {
 	//让数据包重发管理器删除
 	c.Server.DPM.Receive(responsId)
 	//不需要回复
-	log.Println("received response id:", responsId)
+	srv := c.Session.Get(SERVER_TYPE_KEY).(*Srv)
+	ret := fmt.Sprintf("%s:%s", srv.Name, responsId)
+	fmt.Println(ret)
 }
 
 //获取在线逻辑服务器列表

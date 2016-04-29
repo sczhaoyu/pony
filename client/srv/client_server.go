@@ -51,7 +51,7 @@ func HandleCustomer(conn *CustomerServer, rsp *Respon) {
 	if rsp.Header.FaceCode == 101 {
 		ret := []string{}
 		conn.Unmarshal(&ret)
-		fmt.Println(ret)
+		conn.CloseClient()
 	}
 }
 func (c *ClientServer) Handle(conn *Conn) {

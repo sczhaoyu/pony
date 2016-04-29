@@ -15,21 +15,36 @@ import (
 //接收和回应数据包，前4字节为数据包大小
 type CustomerServer struct {
 	net.Conn
-	Name          string                         //服务器名称
-	Id            string                         //身份标示ID
-	State         bool                           //链接状态
-	ResetChan     chan int                       //重置通道信号
-	ResetTimeOut  int                            //超时重链接秒
-	DataChan      chan []byte                    //数据发送通道
-	MaxData       int                            //最大读取限制
-	ServerAddr    string                         //服务器链接地址 IP+Port格式
-	Handler       func(*CustomerServer, *Respon) //数据读取处理
-	FirstSend     func()                         //启动或者重新链接第一次发送消息
-	HeartbeatTime int64                          //心跳时间秒
-	DPM           *DataPkgManager                //数据包重发管理
-	Body          []byte                         //当前回应的body数据包
+	Name           string                         //服务器名称
+	Id             string                         //身份标示ID
+	State          bool                           //链接状态
+	ResetChan      chan int                       //重置通道信号
+	ResetTimeOut   int                            //超时重链接秒
+	DataChan       chan []byte                    //数据发送通道
+	MaxData        int                            //最大读取限制
+	ServerAddr     string                         //服务器链接地址 IP+Port格式
+	Handler        func(*CustomerServer, *Respon) //数据读取处理
+	FirstSend      func()                         //启动或者重新链接第一次发送消息
+	HeartbeatTime  int64                          //心跳时间秒
+	DPM            *DataPkgManager                //数据包重发管理
+	Body           []byte                         //当前回应的body数据包
+	CloseState     bool                           //关闭状态
+	CloseHeartbeat chan int                       //心跳关闭通道
 }
 
+//关闭链接，销毁
+func (c *CustomerServer) CloseClient() {
+	//设置状态为关闭
+	c.CloseState = true
+	c.Conn.Close()
+	//关闭数据通道
+	close(c.DataChan)
+	//关闭心跳
+	c.CloseHeartbeat <- 1
+	//数据包关闭
+	close(c.DPM.CloseCH)
+
+}
 func (c *CustomerServer) Unmarshal(b interface{}) error {
 	if len(c.Body) == 0 {
 		return errors.New("body data nil!")
@@ -39,19 +54,31 @@ func (c *CustomerServer) Unmarshal(b interface{}) error {
 
 //循环发送心跳
 func (c *CustomerServer) heartbeat() {
-	if c.State {
-		//发送心跳
-		c.WriteJson("nil", 520)
+	t := time.NewTicker(time.Second * 3)
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			if c.State {
+				//发送心跳
+				c.WriteJson(nil, 520)
+			}
+		case <-c.CloseHeartbeat:
+			log.Println("心跳线程已退出!")
+			return
+		}
 	}
-	time.AfterFunc(time.Duration(c.HeartbeatTime)*time.Second, func() {
-		c.heartbeat()
-	})
+
 }
 
 //数据包重发
 func (c *CustomerServer) rewire() {
 	for {
-		pkg := <-c.DPM.CH
+		pkg, isClose := <-c.DPM.CH
+		if !isClose {
+			log.Println("重发线程已退出!")
+			return
+		}
 		var req Request
 		req.Unmarshal(pkg.Data[0:4])
 		//往服务器推送
@@ -84,6 +111,7 @@ func (c *CustomerServer) WriteJson(b interface{}, faceCode int) {
 //创建连接
 func (c *CustomerServer) init() {
 	//数据包重发管理
+	c.CloseState = false
 	c.DPM = NewDataPkgManager(5, 5)
 	if c.HeartbeatTime <= 0 {
 		c.HeartbeatTime = 5
@@ -100,6 +128,7 @@ func (c *CustomerServer) init() {
 		c.ResetTimeOut = 20
 	}
 	c.ResetChan = make(chan int, 1)
+	c.CloseHeartbeat = make(chan int, 1)
 	if len(c.DataChan) == 0 {
 		c.DataChan = make(chan []byte, 100)
 	}
@@ -178,9 +207,14 @@ func (c *CustomerServer) Read() {
 //阻塞发送数据
 func (c *CustomerServer) SendData() {
 	for {
-		data := <-c.DataChan
+		data, isClose := <-c.DataChan
+		if !isClose {
+			log.Println("发送线程已退出!")
+			return
+		}
 		c.Conn.Write(data)
 	}
+
 }
 
 //检查链接的完整
@@ -188,6 +222,11 @@ func (c *CustomerServer) CheckClient() {
 	for {
 		<-c.ResetChan
 		for c.State == false {
+			//说明是关闭状态没直接返回
+			if c.CloseState {
+				log.Println("重连线程已退出!")
+				return
+			}
 			var err error
 			c.Conn, err = c.NewConn()
 			if err == nil {
