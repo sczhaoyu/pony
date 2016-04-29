@@ -36,7 +36,9 @@ type CustomerServer struct {
 func (c *CustomerServer) CloseClient() {
 	//设置状态为关闭
 	c.CloseState = true
-	c.Conn.Close()
+	if c.State {
+		c.Conn.Close()
+	}
 	//关闭数据通道
 	close(c.DataChan)
 	//关闭心跳
@@ -54,7 +56,7 @@ func (c *CustomerServer) Unmarshal(b interface{}) error {
 
 //循环发送心跳
 func (c *CustomerServer) heartbeat() {
-	t := time.NewTicker(time.Second * 3)
+	t := time.NewTicker(time.Duration(c.HeartbeatTime * time.Second))
 	defer t.Stop()
 	for {
 		select {
