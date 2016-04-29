@@ -8,8 +8,9 @@ import (
 )
 
 type ClientServer struct {
-	Srv *Server         //链接服务
-	CS  *CustomerServer //客户端服务
+	Srv        *Server                    //链接服务
+	CS         *CustomerServer            //客户端服务
+	BusinessCS map[string]*CustomerServer //客户端逻辑服务
 }
 
 //启动客户端服务
@@ -51,7 +52,7 @@ func HandleCustomer(conn *CustomerServer, rsp *Respon) {
 	if rsp.Header.FaceCode == 101 {
 		ret := []string{}
 		conn.Unmarshal(&ret)
-		conn.CloseClient()
+
 	}
 }
 func (c *ClientServer) Handle(conn *Conn) {
