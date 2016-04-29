@@ -26,22 +26,20 @@ type DataPkgManager struct {
 
 //重置发送数据包
 func (d *DataPkgManager) ResetSend() {
+	d.Mx.Lock()
 	for k, v := range d.Pkgs {
-
 		//没有确认的消息包
 		if v.State == false {
 			//检测时间，是否重新推送
 			if (v.At + int64(d.SendTime)) < time.Now().Local().Unix() {
 				//写入通道，重新推送
-				d.Mx.Lock()
 				delete(d.Pkgs, k)
 				//确定该对象被接收才能解锁
 				d.CH <- v
-				d.Mx.Unlock()
-
 			}
 		}
 	}
+	d.Mx.Unlock()
 	time.AfterFunc(d.SendTime*time.Second, func() { d.ResetSend() })
 }
 
@@ -54,18 +52,18 @@ func (d *DataPkgManager) Receive(msgId string) bool {
 		return true
 	}
 	//这个数据包没有收过，需要修改接收状态
-
+	d.Mx.RUnlock()
 	//加入接收
 	d.ReceiveMsgs[msgId] = true
 	//判断是否为发送的数据包，
 	//如果是等到发送确认的数据包，修改状态
+	d.Mx.Lock()
 	_, ok := d.Pkgs[msgId]
-	d.Mx.RUnlock()
+
 	if ok {
-		d.Mx.Lock()
 		d.Pkgs[msgId].State = true
-		d.Mx.Unlock()
 	}
+	d.Mx.Unlock()
 	return false
 }
 func (d *DataPkgManager) AddPkg(msgId, addr, uid string, data []byte) {
@@ -103,13 +101,13 @@ func NewDataPkgManager(GCTime, SendTime time.Duration) *DataPkgManager {
 
 //垃圾数据回收
 func (d *DataPkgManager) GC() {
+	d.Mx.Lock()
 	for k, v := range d.Pkgs {
 		if v.State {
-			d.Mx.Lock()
 			delete(d.Pkgs, k)
-			d.Mx.Unlock()
 		}
 	}
+	d.Mx.Unlock()
 	time.AfterFunc(d.GCTime*time.Second, func() { d.GC() })
 
 }

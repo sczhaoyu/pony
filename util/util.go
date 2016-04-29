@@ -93,5 +93,6 @@ func ProphesyVal(t interface{}) string {
 	default:
 		val = t.(string)
 	}
+
 	return val
 }

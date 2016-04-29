@@ -69,6 +69,17 @@ func (pder *MemProvider) SessionInit(maxlifetime int64) {
 
 }
 
+//获取全部session
+func (pder *MemProvider) SessionStoreAll() []*SessionStore {
+	pder.lock.RLock()
+	defer pder.lock.RUnlock()
+	var ret []*SessionStore = make([]*SessionStore, 0, len(pder.sessions))
+	for _, v := range pder.sessions {
+		ret = append(ret, v.Value.(*SessionStore))
+	}
+	return ret
+}
+
 //根据sid获取session
 func (pder *MemProvider) SessionRead(sid string) (*SessionStore, error) {
 	pder.lock.RLock()

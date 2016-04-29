@@ -56,12 +56,20 @@ func NewConn(conn net.Conn, srv *Server, session *SessionStore, data []byte) (*C
 		c.Body = body
 	}
 	//将BODY里面的内容转换
-	m, err := j.Get("body").Map()
-	if err == nil {
-		c.values = m
-	}
+
+	json.Unmarshal(body, &c.values)
+
 	//取出body后遍历里面的key val
 	return &c, nil
+}
+
+//主动通知
+func (c *Conn) Notice(b interface{}, faceCode int) {
+	c.Request = new(Request)
+	c.Request.Header.FaceCode = faceCode
+	c.Request.Header.RequestId = ""
+	c.Request.Header.RequestTime = 0
+	c.WriteJson(b)
 }
 
 //回应客户端json

@@ -1,7 +1,10 @@
 package server
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	simplejson "github.com/bitly/go-simplejson"
 	"github.com/sczhaoyu/pony/util"
 	"log"
 	"net"
@@ -24,6 +27,14 @@ type CustomerServer struct {
 	FirstSend     func()                         //启动或者重新链接第一次发送消息
 	HeartbeatTime int64                          //心跳时间秒
 	DPM           *DataPkgManager                //数据包重发管理
+	Body          []byte                         //当前回应的body数据包
+}
+
+func (c *CustomerServer) Unmarshal(b interface{}) error {
+	if len(c.Body) == 0 {
+		return errors.New("body data nil!")
+	}
+	return json.Unmarshal(c.Body, b)
 }
 
 //循环发送心跳
@@ -151,6 +162,12 @@ func (c *CustomerServer) Read() {
 				c.DPM.Receive(rsp.Header.RequestId)
 				//回应服务器已经收包
 				c.WriteJson(rsp.Header.ResponsId, 200)
+				//取出data里面的body
+				j, _ := simplejson.NewJson(data)
+				body, err := j.Get("body").MarshalJSON()
+				if err == nil {
+					c.Body = body
+				}
 				c.Handler(c, &rsp)
 			}
 

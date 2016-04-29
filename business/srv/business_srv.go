@@ -3,6 +3,7 @@ package srv
 import (
 	"fmt"
 	"github.com/sczhaoyu/pony/business/srv/customer"
+	. "github.com/sczhaoyu/pony/config"
 	. "github.com/sczhaoyu/pony/server"
 )
 
@@ -31,11 +32,15 @@ func (c *BusinessServer) RunCustomerServer() {
 	c.CS.FirstSend = func() {
 		//发送自己的信息
 		ret := &struct {
-			Name string `json:"name"`
-			Id   string `json:"id"`
+			Name    string `json:"name"`
+			Id      string `json:"id"`
+			Addr    string `json:"addr"`
+			SrvType int    `json:"srvType"`
 		}{
-			Name: c.Srv.Name,
-			Id:   c.Srv.Id,
+			Name:    c.Srv.Name,
+			Id:      c.Srv.Id,
+			Addr:    fmt.Sprintf(c.Srv.Ip+":"+"%d", c.Srv.Port),
+			SrvType: SERVER_TYPE_BS,
 		}
 		c.CS.WriteJson(ret, 100)
 	}
