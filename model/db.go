@@ -18,8 +18,8 @@ var (
 )
 
 func init() {
-	mysqlUrl := "huiju:2015-_h_uiJ_uHj@tcp(rds2hhr4tsha6c4p5059.mysql.rds.aliyuncs.com:3306)/"
-	PonyDB, _ = xorm.NewEngine("mysql", mysqlUrl+"hjuser?charset=utf8")
+	mysqlUrl := "root:root@tcp(127.0.0.1:3306)/"
+	PonyDB, _ = xorm.NewEngine("mysql", mysqlUrl+"db?charset=utf8")
 	PonyDB.ShowSQL = true
 	PonyDB.SetMaxIdleConns(INIT_CLIENT)
 	PonyDB.SetMaxOpenConns(MAX_CLIENT)
